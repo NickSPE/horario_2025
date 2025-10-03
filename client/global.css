@@ -1,0 +1,140 @@
+/** @import must precede all other statements */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /**
+   * Tailwind CSS theme
+   * tailwind.config.ts expects the following color variables to be expressed as HSL values.
+   * A different format will require also updating the theme in tailwind.config.ts.
+  */
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* Turquesa como color de marca principal */
+    --primary: 183 74% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 183 60% 92%;
+    --secondary-foreground: 187 60% 22%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 40%; /* Más oscuro para mejor contraste */
+
+    --accent: 187 53% 90%;
+    --accent-foreground: 187 60% 22%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 186 35% 88%;
+    --input: 186 35% 88%;
+    --ring: 183 74% 38%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 183 74% 38%;
+
+    --sidebar-primary-foreground: 0 0% 100%;
+
+    --sidebar-accent: 187 53% 90%;
+
+    --sidebar-accent-foreground: 187 60% 22%;
+
+    --sidebar-border: 186 35% 88%;
+
+    --sidebar-ring: 183 74% 38%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 183 70% 44%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 187 35% 22%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 183 70% 44%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 183 70% 44%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 187 35% 22%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 183 70% 44%;
+  }
+
+  /* Configuración base para accesibilidad en adultos mayores */
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    /* Tamaño de fuente base más grande para adultos mayores */
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  /* Mejorar legibilidad en móviles */
+  @media (max-width: 768px) {
+    body {
+      font-size: 17px;
+      line-height: 1.65;
+    }
+  }
+
+  /* Aumentar contraste en enlaces y botones */
+  a, button {
+    @apply transition-all duration-200;
+  }
+
+  /* Mejorar visibilidad del foco para teclado */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
