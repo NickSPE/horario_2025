@@ -8,7 +8,7 @@ import { createServer } from "./server";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    port: 8000,
     fs: {
       // Allow serving files from project root, client and shared folders.
       // The repo contains a top-level `index.html` so include the root ("./").
