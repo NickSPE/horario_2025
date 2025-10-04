@@ -3,40 +3,13 @@
   functions = "netlify/functions"
   publish = "dist/spa"
 
+
 [functions]
   external_node_modules = ["express"]
   node_bundler = "esbuild"
-
-# Headers para assets
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# Headers para el index.html
-[[headers]]
-  for = "/index.html"
-  [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
-    Pragma = "no-cache"
-    Expires = "0"
-
-# Headers para el service worker
-[[headers]]
-  for = "/service-worker.js"
-  [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
-    Pragma = "no-cache"
-    Expires = "0"
-    
+  
 [[redirects]]
   force = true
   from = "/api/*"
   status = 200
   to = "/.netlify/functions/api/:splat"
-
-# SPA redirect - debe ir al final
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200

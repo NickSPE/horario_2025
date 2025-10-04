@@ -6,10 +6,9 @@ import { createServer } from "./server";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: mode === 'production' ? '/' : '/',
   server: {
     host: "::",
-    port: 3000,
+    port: 8080,
     fs: {
       // Allow serving files from project root, client and shared folders.
       // The repo contains a top-level `index.html` so include the root ("./").
