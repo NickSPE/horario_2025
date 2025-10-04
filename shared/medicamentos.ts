@@ -14,6 +14,7 @@ export interface Medicamento {
   nombre: string;
   descripcion?: string;
   categoria_id: string;
+  imagen_url?: string;
   dosis_recomendada?: string;
   via_administracion?: string;
   indicaciones?: string;

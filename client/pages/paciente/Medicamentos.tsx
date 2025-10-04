@@ -1,61 +1,57 @@
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+﻿import { useEffect, useState, useMemo } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import type { CategoriaMedicamento, Medicamento } from "@shared/medicamentos";
-import { Search, Pill } from "lucide-react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Search, ChevronDown, ChevronUp } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function MedicamentosPaciente() {
   const { toast } = useToast();
   const [categories, setCategories] = useState<CategoriaMedicamento[]>([]);
   const [meds, setMeds] = useState<Medicamento[]>([]);
-  const [filteredMeds, setFilteredMeds] = useState<Medicamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("Todos");
+  const [expandedMedId, setExpandedMedId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
-  useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredMeds(meds);
-    } else {
-      const filtered = meds.filter((m) =>
+  const filteredMeds = useMemo(() => {
+    let filtered = meds;
+    if (selectedCategory !== "Todos") {
+      const cat = categories.find(c => c.nombre === selectedCategory);
+      if (cat) {
+        filtered = filtered.filter(m => m.categoria_id === cat.id);
+      }
+    }
+    if (searchTerm.trim() !== "") {
+      filtered = filtered.filter((m) =>
         m.nombre.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredMeds(filtered);
     }
-  }, [searchTerm, meds]);
+    return filtered;
+  }, [searchTerm, meds, selectedCategory, categories]);
 
   const loadData = async () => {
     try {
       const supabase = getSupabase();
-
-      // Cargar categorías
       const { data: cats, error: catsError } = await supabase
         .from("categorias_medicamentos")
         .select("*")
         .order("nombre");
-
       if (catsError) throw catsError;
       setCategories(cats || []);
-
-      // Cargar medicamentos
       const { data: medications, error: medsError } = await supabase
         .from("medicamentos")
         .select("*")
         .order("nombre");
-
       if (medsError) throw medsError;
       setMeds(medications || []);
-      setFilteredMeds(medications || []);
     } catch (error: any) {
       toast({
         title: "Error al cargar medicamentos",
@@ -75,199 +71,114 @@ export default function MedicamentosPaciente() {
     );
   }
 
+  const allCategories = ["Todos", ...categories.map(c => c.nombre)];
+
   return (
-    <div className="grid gap-6">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold">
-          Catálogo de Medicamentos
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Consulta información sobre medicamentos disponibles
-        </p>
+    <section className="pb-10">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Medicamentos</h1>
       </div>
-
-      {/* Buscador */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar medicamento..."
-              className="h-11 w-full rounded-md border bg-background pl-10 pr-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            />
-          </div>
-          {searchTerm && (
-            <p className="text-sm text-muted-foreground mt-2">
-              {filteredMeds.length} resultado(s) para "{searchTerm}"
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Estadísticas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-primary">{categories.length}</p>
-              <p className="text-sm text-muted-foreground">Categorías</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-primary">{meds.length}</p>
-              <p className="text-sm text-muted-foreground">Medicamentos</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="mt-6">
+        <div className="relative mx-auto max-w-2xl">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground/50" />
+          <Input
+            aria-label="Buscar medicamentos"
+            placeholder="Buscar medicamentos por nombre o síntoma..."
+            className="pl-10 h-12 rounded-xl bg-white border border-border/70 shadow-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
-
-      {/* Medicamentos por Categoría (Acordeón) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Medicamentos por Categoría</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {categories.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              No hay categorías disponibles aún
-            </p>
-          ) : (
-            <Accordion type="multiple" className="w-full">
-              {categories.map((cat) => {
-                const catMeds = filteredMeds.filter(
-                  (m) => m.categoria_id === cat.id
-                );
-
-                return (
-                  <AccordionItem key={cat.id} value={cat.id}>
-                    <AccordionTrigger className="hover:no-underline">
-                      <div className="flex items-center gap-3">
-                        <Pill className="h-5 w-5 text-primary" />
-                        <div className="text-left">
-                          <p className="font-semibold">{cat.nombre}</p>
-                          {cat.descripcion && (
-                            <p className="text-sm text-muted-foreground">
-                              {cat.descripcion}
-                            </p>
-                          )}
-                        </div>
-                        <span className="ml-auto mr-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                          {catMeds.length}
-                        </span>
+      <div className="mt-6">
+        <div className="flex flex-wrap gap-2">
+          {allCategories.map((cat) => (
+            <Badge
+              key={cat}
+              variant={selectedCategory === cat ? "default" : "secondary"}
+              className={`cursor-pointer px-4 py-2 text-sm font-medium transition-all ${selectedCategory === cat ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted hover:bg-muted/80 text-muted-foreground"}`}
+              onClick={() => setSelectedCategory(cat)}
+            >
+              {cat}
+            </Badge>
+          ))}
+        </div>
+      </div>
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {filteredMeds.map((med) => {
+          const isExpanded = expandedMedId === med.id;
+          return (
+            <Card key={med.id} className="overflow-hidden hover:shadow-lg transition-all duration-300">
+              <CardHeader className="p-0">
+                <div className="aspect-square bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center overflow-hidden">
+                  {med.imagen_url ? (
+                    <img 
+                      src={med.imagen_url} 
+                      alt={med.nombre} 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          parent.innerHTML = '<div class="text-6xl">💊</div>';
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="text-6xl">💊</div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="p-4">
+                <h3 className="font-semibold text-lg mb-2">{med.nombre}</h3>
+                <p className="text-sm text-muted-foreground mb-2">{med.descripcion || "Medicamento disponible"}</p>
+                
+                {isExpanded && (
+                  <div className="mt-4 space-y-3 border-t pt-4 animate-in slide-in-from-top-2">
+                    {med.dosis_recomendada && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-1">💊 Dosis recomendada:</h4>
+                        <p className="text-sm text-muted-foreground">{med.dosis_recomendada}</p>
                       </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      {catMeds.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-4 text-center">
-                          {searchTerm
-                            ? "No hay medicamentos que coincidan con tu búsqueda"
-                            : "No hay medicamentos en esta categoría"}
-                        </p>
-                      ) : (
-                        <div className="grid gap-3 pt-2">
-                          {catMeds.map((med) => (
-                            <div
-                              key={med.id}
-                              className="rounded-lg border p-4 bg-accent/20 hover:bg-accent/40 transition-colors"
-                            >
-                              <h4 className="font-semibold text-lg mb-2">
-                                {med.nombre}
-                              </h4>
-
-                              {med.descripcion && (
-                                <p className="text-sm text-muted-foreground mb-3">
-                                  {med.descripcion}
-                                </p>
-                              )}
-
-                              <div className="grid gap-2 text-sm">
-                                {med.dosis_recomendada && (
-                                  <div className="flex gap-2">
-                                    <span className="font-medium text-primary">
-                                      💊 Dosis:
-                                    </span>
-                                    <span>{med.dosis_recomendada}</span>
-                                  </div>
-                                )}
-
-                                {med.via_administracion && (
-                                  <div className="flex gap-2">
-                                    <span className="font-medium text-primary">
-                                      📍 Vía:
-                                    </span>
-                                    <span>{med.via_administracion}</span>
-                                  </div>
-                                )}
-
-                                {med.indicaciones && (
-                                  <div className="flex gap-2">
-                                    <span className="font-medium text-primary">
-                                      ℹ️ Indicaciones:
-                                    </span>
-                                    <span>{med.indicaciones}</span>
-                                  </div>
-                                )}
-
-                                {med.contraindicaciones && (
-                                  <div className="flex gap-2">
-                                    <span className="font-medium text-destructive">
-                                      ⚠️ Contraindicaciones:
-                                    </span>
-                                    <span>{med.contraindicaciones}</span>
-                                  </div>
-                                )}
-                              </div>
-
-                              <p className="text-xs text-muted-foreground mt-3 italic">
-                                Consulta siempre a tu médico antes de tomar cualquier
-                                medicamento
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Información adicional */}
-      <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
-        <CardContent className="pt-6">
-          <div className="flex gap-3">
-            <div className="text-blue-600 dark:text-blue-400 text-2xl">ℹ️</div>
-            <div>
-              <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                Información Importante
-              </h3>
-              <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                <li>
-                  • La información aquí presentada es de carácter informativo
-                </li>
-                <li>
-                  • No sustituye la consulta con un profesional de la salud
-                </li>
-                <li>
-                  • Sigue siempre las indicaciones de tu médico
-                </li>
-                <li>
-                  • Reporta cualquier reacción adversa a tu profesional de salud
-                </li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+                    )}
+                    {med.via_administracion && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-1">💉 Vía de administración:</h4>
+                        <p className="text-sm text-muted-foreground">{med.via_administracion}</p>
+                      </div>
+                    )}
+                    {med.indicaciones && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-1">✅ Indicaciones:</h4>
+                        <p className="text-sm text-muted-foreground">{med.indicaciones}</p>
+                      </div>
+                    )}
+                    {med.contraindicaciones && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-1">⚠️ Contraindicaciones:</h4>
+                        <p className="text-sm text-muted-foreground">{med.contraindicaciones}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="p-4 pt-0">
+                <Button 
+                  className="w-full bg-primary hover:bg-primary/90" 
+                  size="default"
+                  onClick={() => setExpandedMedId(isExpanded ? null : med.id)}
+                >
+                  <span>{isExpanded ? "Ocultar" : "Ver detalles"}</span>
+                  {isExpanded ? <ChevronUp className="ml-2 h-4 w-4" /> : <ChevronDown className="ml-2 h-4 w-4" />}
+                </Button>
+              </CardFooter>
+            </Card>
+          );
+        })}
+        {filteredMeds.length === 0 && (
+          <p className="text-foreground/70 col-span-full text-center py-8">No se encontraron medicamentos con esa búsqueda.</p>
+        )}
+      </div>
+    </section>
   );
 }
