@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getSupabase } from "@/lib/supabase";
-import { router } from "@inertiajs/react";
+import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 interface Row {
@@ -40,6 +40,7 @@ interface ResumenPaciente {
 
 export default function ProfesionalInicio() {
   const supabase = getSupabase();
+  const navigate = useNavigate();
   const [pacientesConRecetas, setPacientesConRecetas] = useState<PacienteReceta[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -93,7 +94,7 @@ export default function ProfesionalInicio() {
           videollamadas.
         </p>
         <div className="mt-4 flex gap-3">
-          <Button onClick={() => router.get(`dashboard/profesional/asignar`)}>Nueva Receta</Button>
+          <Button onClick={() => navigate('/dashboard/profesional/asignar')}>Nueva Receta</Button>
           <Button
             onClick={obtenerPacientesConRecetas}
             variant="outline"

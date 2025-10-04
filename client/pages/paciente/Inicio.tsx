@@ -27,11 +27,11 @@ export default function PacienteInicio() {
       {/* Vista móvil: tiles grandes y fáciles de tocar (como la imagen) */}
       <section className="grid grid-cols-2 gap-4 md:hidden">
         <Tile to="/dashboard/paciente/citas" title="Mis Citas" icon="📅" />
-        <Tile to="/dashboard/paciente/recetas" title="Historial Médico" icon="📋" />
-        <Tile to="/dashboard/paciente/recordatorios" title="Recordatorios" icon="🧪" />
+        <Tile to="/dashboard/paciente/recetas" title="Recetas" icon="📋" />
+        <Tile to="/dashboard/paciente/medicamentos" title="Medicamentos" icon="💊" />
+        <Tile to="/dashboard/paciente/recordatorios" title="Recordatorios" icon="⏰" />
         <Tile to="/dashboard/paciente/mensajes" title="Mensajes" icon="✉️" />
-        <Tile to="/dashboard/paciente/perfil" title="Mi Perfil" icon="👤" />
-        <Tile to="/dashboard/paciente/citas" title="Pagos" icon="💳" />
+        <Tile to="/dashboard/paciente/perfil" title="Mi Perfil" icon="�" />
       </section>
 
       {/* Vista escritorio/tablet: tarjetas detalladas (formato original) */}
