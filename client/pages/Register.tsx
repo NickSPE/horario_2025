@@ -10,14 +10,18 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Register() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [mode, setMode] = useState<"paciente" | "profesional">("paciente");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     nombre: "",
+    apellido: "",
+    dni: "",
     email: "",
     password: "",
     licencia: "",
@@ -41,6 +45,8 @@ export default function Register() {
         options: {
           data: {
             nombre: formData.nombre,
+            apellido: formData.apellido,
+            dni: formData.dni,
             role: mode,
             ...(mode === "profesional" && { licencia: formData.licencia }),
           },
@@ -60,10 +66,26 @@ export default function Register() {
         navigate("/login");
       }, 4000);
     } catch (error: any) {
+      console.error("Error de registro:", error);
+      
+      let errorMessage = error.message || "Ocurrió un error inesperado";
+      
+      // Mensajes más claros para errores comunes
+      if (error.message?.includes("already registered") || error.message?.includes("User already registered")) {
+        errorMessage = `Este correo (${formData.email}) ya está registrado. ¿Ya tienes una cuenta? Intenta iniciar sesión.`;
+      } else if (error.message?.includes("Email rate limit exceeded")) {
+        errorMessage = "Has intentado registrarte muchas veces. Espera unos minutos e intenta de nuevo.";
+      } else if (error.message?.includes("Invalid email")) {
+        errorMessage = "El correo electrónico no es válido. Verifica que esté bien escrito.";
+      } else if (error.message?.includes("Password should be at least 6 characters")) {
+        errorMessage = "La contraseña debe tener al menos 6 caracteres.";
+      }
+      
       toast({
         title: "Error al registrar",
-        description: error.message || "Ocurrió un error inesperado",
+        description: errorMessage,
         variant: "destructive",
+        duration: 8000,
       });
     } finally {
       setLoading(false);
@@ -110,15 +132,46 @@ export default function Register() {
           </CardHeader>
           <CardContent>
             <form className="grid gap-4" onSubmit={onSubmit}>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <label htmlFor="nombre" className="text-sm font-medium">
+                    Nombre
+                  </label>
+                  <input
+                    id="nombre"
+                    name="nombre"
+                    value={formData.nombre}
+                    onChange={handleChange}
+                    placeholder="Ej: Juan"
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label htmlFor="apellido" className="text-sm font-medium">
+                    Apellido
+                  </label>
+                  <input
+                    id="apellido"
+                    name="apellido"
+                    value={formData.apellido}
+                    onChange={handleChange}
+                    placeholder="Ej: Pérez"
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    required
+                  />
+                </div>
+              </div>
               <div className="grid gap-2">
-                <label htmlFor="nombre" className="text-sm font-medium">
-                  Nombre completo
+                <label htmlFor="dni" className="text-sm font-medium">
+                  DNI/Cédula
                 </label>
                 <input
-                  id="nombre"
-                  name="nombre"
-                  value={formData.nombre}
+                  id="dni"
+                  name="dni"
+                  value={formData.dni}
                   onChange={handleChange}
+                  placeholder="Ej: 12345678-A"
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   required
                 />
@@ -145,17 +198,31 @@ export default function Register() {
                 <label htmlFor="password" className="text-sm font-medium">
                   Contraseña
                 </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Mínimo 6 caracteres"
-                  className="h-10 w-full rounded-md border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  required
-                  minLength={6}
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Mínimo 6 caracteres"
+                    className="h-10 w-full rounded-md border bg-background px-3 pr-10 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   🔒 Mínimo 6 caracteres para mayor seguridad
                 </p>

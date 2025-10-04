@@ -7,10 +7,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { getSupabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/use-auth';
+import { useNotificacionRecordatorio } from '@/hooks/use-notificacion-recordatorio';
+import { useServiceWorker } from '@/hooks/use-service-worker';
 import type { MedicamentoConCategoria } from '@shared/medicamentos';
 import type { RecordatorioCompleto } from '@shared/recordatorios';
 import { INTERVALOS_DISPONIBLES } from '@shared/recordatorios';
-import { Clock, Pill, Plus, Trash2, CheckCircle2, Timer, Bell, Play } from 'lucide-react';
+import { Clock, Pill, Plus, Trash2, CheckCircle2, Timer, Bell, Play, Volume2, Wifi, WifiOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // Función para formatear el tiempo restante
@@ -40,12 +42,16 @@ function TemporizadorCard({
   onMarcarTomado: (id: string) => void;
   onEliminar: (id: string) => void;
 }) {
+  const esAsignadoPorProfesional = !!recordatorio.creado_por_profesional_id;
   const [segundosRestantes, setSegundosRestantes] = useState(recordatorio.segundos_restantes);
   const debeTomar = segundosRestantes <= 0;
+  const [yaAlarmo, setYaAlarmo] = useState(false);
+  const { alarmaCompleta, reproducirAlarma } = useNotificacionRecordatorio();
 
   // Actualizar cuando cambie el recordatorio
   useEffect(() => {
     setSegundosRestantes(recordatorio.segundos_restantes);
+    setYaAlarmo(false); // Reset cuando cambia el recordatorio
   }, [recordatorio.segundos_restantes]);
 
   // Temporizador que cuenta cada segundo
@@ -60,6 +66,15 @@ function TemporizadorCard({
     return () => clearInterval(interval);
   }, []);
 
+  // Activar alarma cuando llegue a 0
+  useEffect(() => {
+    if (debeTomar && !yaAlarmo) {
+      // Reproducir alarma sonora + vibración + notificación
+      alarmaCompleta(recordatorio.medicamento_nombre, recordatorio.dosis_a_tomar);
+      setYaAlarmo(true);
+    }
+  }, [debeTomar, yaAlarmo, recordatorio, alarmaCompleta]);
+
   // Calcular porcentaje de progreso
   const porcentajeTranscurrido = Math.max(0, Math.min(100, 
     ((recordatorio.intervalo_horas * 3600 - segundosRestantes) / (recordatorio.intervalo_horas * 3600)) * 100
@@ -70,22 +85,37 @@ function TemporizadorCard({
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Pill className="h-6 w-6 text-primary" />
-              {recordatorio.medicamento_nombre}
-            </CardTitle>
+            <div className="flex items-center gap-2 flex-wrap">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Pill className="h-6 w-6 text-primary" />
+                {recordatorio.medicamento_nombre}
+              </CardTitle>
+              {esAsignadoPorProfesional && (
+                <Badge variant="outline" className="border-blue-500 text-blue-700 bg-blue-50">
+                  👨‍⚕️ Asignado por profesional
+                </Badge>
+              )}
+            </div>
             <CardDescription className="text-base mt-1">
               {recordatorio.categoria_nombre}
+              {recordatorio.profesional_nombre && (
+                <span className="block text-sm text-blue-600 font-medium mt-1">
+                  Dr(a). {recordatorio.profesional_nombre} {recordatorio.profesional_apellido}
+                </span>
+              )}
             </CardDescription>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onEliminar(recordatorio.id)}
-            className="flex-shrink-0"
-          >
-            <Trash2 className="h-5 w-5 text-destructive" />
-          </Button>
+          {!esAsignadoPorProfesional && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onEliminar(recordatorio.id)}
+              className="flex-shrink-0"
+              title="Eliminar recordatorio"
+            >
+              <Trash2 className="h-5 w-5 text-destructive" />
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -100,6 +130,27 @@ function TemporizadorCard({
             }
           </span>
         </div>
+
+        {/* Contador de tomas restantes */}
+        {recordatorio.tomas_totales && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-blue-900">Progreso del tratamiento:</span>
+              <span className="text-lg font-bold text-blue-600">
+                {recordatorio.tomas_completadas} / {recordatorio.tomas_totales}
+              </span>
+            </div>
+            <div className="mt-2 h-2 bg-blue-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-blue-600 transition-all duration-500"
+                style={{ width: `${(recordatorio.tomas_completadas / recordatorio.tomas_totales) * 100}%` }}
+              />
+            </div>
+            <p className="text-xs text-blue-700 mt-1">
+              {recordatorio.tomas_totales - recordatorio.tomas_completadas} {recordatorio.tomas_totales - recordatorio.tomas_completadas === 1 ? 'toma restante' : 'tomas restantes'}
+            </p>
+          </div>
+        )}
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -131,7 +182,7 @@ function TemporizadorCard({
         {debeTomar && (
           <Button 
             onClick={() => onMarcarTomado(recordatorio.id)}
-            className="w-full gap-2 text-base min-h-[52px]"
+            className="w-full gap-2 text-base min-h-[52px] animate-bounce"
             size="lg"
           >
             <CheckCircle2 className="h-6 w-6" />
@@ -153,22 +204,52 @@ export default function Recordatorios() {
   const { user } = useAuth();
   const { toast } = useToast();
   const supabase = getSupabase();
+  const { solicitarPermisoNotificaciones, reproducirAlarma } = useNotificacionRecordatorio();
+  const { serviceWorkerRegistered, scheduleNotification, saveRecordatorioLocal } = useServiceWorker();
 
   const [recordatorios, setRecordatorios] = useState<RecordatorioCompleto[]>([]);
   const [medicamentos, setMedicamentos] = useState<MedicamentoConCategoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [permisoNotificaciones, setPermisoNotificaciones] = useState(false);
 
   // Formulario
   const [medicamentoSeleccionado, setMedicamentoSeleccionado] = useState('');
   const [intervalo, setIntervalo] = useState('8');
   const [dosisPersonalizada, setDosisPersonalizada] = useState('');
+  const [tomasTotales, setTomasTotales] = useState(''); // Nuevo: cuántas pastillas tiene
   const [notas, setNotas] = useState('');
 
   // Cargar datos al iniciar
   useEffect(() => {
     cargarDatos();
+    verificarPermisoNotificaciones();
   }, []);
+
+  async function verificarPermisoNotificaciones() {
+    if ('Notification' in window) {
+      setPermisoNotificaciones(Notification.permission === 'granted');
+    }
+  }
+
+  async function activarNotificaciones() {
+    const permiso = await solicitarPermisoNotificaciones();
+    setPermisoNotificaciones(permiso);
+    if (permiso) {
+      toast({
+        title: '🔔 Notificaciones activadas',
+        description: 'Recibirás alertas INCLUSO con el navegador cerrado'
+      });
+    }
+  }
+
+  function probarAlarma() {
+    reproducirAlarma();
+    toast({
+      title: '🔊 Probando alarma',
+      description: 'Este es el sonido que escucharás cuando sea hora de tomar'
+    });
+  }
 
   // Actualizar recordatorios cada minuto
   useEffect(() => {
@@ -251,6 +332,8 @@ export default function Recordatorios() {
       veces_al_dia: vecesAlDia
     });
 
+    const tomasTotalesNum = tomasTotales ? parseInt(tomasTotales) : null;
+
     const { data, error } = await supabase
       .from('recordatorios_medicamentos')
       .insert({
@@ -258,6 +341,8 @@ export default function Recordatorios() {
         medicamento_id: medicamentoSeleccionado,
         intervalo_horas: intervaloNum,
         dosis_personalizada: dosisPersonalizada || null,
+        tomas_totales: tomasTotalesNum,
+        tomas_completadas: 0,
         notas: notas || null,
         inicio_tratamiento: ahora.toISOString(),
         proxima_toma: proximaToma.toISOString(),
@@ -275,18 +360,32 @@ export default function Recordatorios() {
       return;
     }
 
+    // Programar notificación en Service Worker (funciona con navegador cerrado)
+    if (data && data[0]) {
+      const medicamentoInfo = medicamentos.find(m => m.id === medicamentoSeleccionado);
+      await scheduleNotification(
+        data[0].id,
+        medicamentoInfo?.nombre || 'Medicamento',
+        dosisPersonalizada || medicamentoInfo?.dosis_recomendada || 'Dosis',
+        proximaToma.getTime()
+      );
+    }
+
     const intervaloTexto = intervaloNum < 1 
       ? '10 segundos' 
       : `${intervaloNum} horas`;
 
     toast({
-      title: '¡Recordatorio creado!',
-      description: `Empezará ahora. Tomarás ${vecesAlDia} veces al día (cada ${intervaloTexto})`
+      title: '✅ Recordatorio creado',
+      description: serviceWorkerRegistered 
+        ? `Recibirás alertas cada ${intervaloTexto} INCLUSO con navegador cerrado` 
+        : `Te avisaremos cada ${intervaloTexto}. Tomarás ${vecesAlDia} veces al día`
     });
 
     setMedicamentoSeleccionado('');
     setIntervalo('8');
     setDosisPersonalizada('');
+    setTomasTotales('');
     setNotas('');
     setMostrarFormulario(false);
     cargarRecordatorios();
@@ -297,38 +396,79 @@ export default function Recordatorios() {
     if (!recordatorio) return;
 
     const ahora = new Date();
+    
+    // IMPORTANTE: Guardar la hora programada ANTES de actualizar
+    const horaProgramadaActual = recordatorio.proxima_toma;
+    
     const proximaToma = new Date(ahora.getTime() + recordatorio.intervalo_horas * 60 * 60 * 1000);
+    
+    // Incrementar contador de tomas completadas
+    const nuevasTomasCompletadas = recordatorio.tomas_completadas + 1;
+    
+    // Verificar si ya completó todas las tomas
+    const terminoTratamiento = recordatorio.tomas_totales 
+      ? nuevasTomasCompletadas >= recordatorio.tomas_totales
+      : false;
 
-    const { error: errorUpdate } = await supabase
-      .from('recordatorios_medicamentos')
-      .update({
-        ultima_toma: ahora.toISOString(),
-        proxima_toma: proximaToma.toISOString()
-      })
-      .eq('id', recordatorioId);
-
+    // Primero guardar en historial (antes de actualizar el recordatorio)
     const { error: errorHistorial } = await supabase
       .from('historial_tomas')
       .insert({
         recordatorio_id: recordatorioId,
-        hora_programada: recordatorio.proxima_toma,
+        hora_programada: horaProgramadaActual, // Usar la hora guardada
         hora_real: ahora.toISOString(),
         tomado: true
       });
 
-    if (errorUpdate || errorHistorial) {
+    if (errorHistorial) {
+      console.error('Error al guardar historial:', errorHistorial);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo registrar la toma'
+        title: 'Error al guardar historial',
+        description: errorHistorial.message
       });
       return;
     }
 
-    toast({
-      title: '¡Toma registrada!',
-      description: `Próxima toma en ${recordatorio.intervalo_horas} horas`
-    });
+    // Luego actualizar el recordatorio
+    const { error: errorUpdate } = await supabase
+      .from('recordatorios_medicamentos')
+      .update({
+        ultima_toma: ahora.toISOString(),
+        proxima_toma: terminoTratamiento ? null : proximaToma.toISOString(),
+        tomas_completadas: nuevasTomasCompletadas,
+        activo: !terminoTratamiento // Desactivar si terminó
+      })
+      .eq('id', recordatorioId);
+
+    if (errorUpdate) {
+      console.error('Error al actualizar recordatorio:', errorUpdate);
+      toast({
+        variant: 'destructive',
+        title: 'Error al actualizar',
+        description: errorUpdate.message
+      });
+      return;
+    }
+
+    if (terminoTratamiento) {
+      toast({
+        title: '🎉 ¡Tratamiento completado!',
+        description: `Has terminado todas las ${recordatorio.tomas_totales} tomas de ${recordatorio.medicamento_nombre}`,
+        duration: 5000
+      });
+    } else {
+      const tomasRestantes = recordatorio.tomas_totales 
+        ? recordatorio.tomas_totales - nuevasTomasCompletadas
+        : null;
+      
+      toast({
+        title: '✅ Toma registrada',
+        description: tomasRestantes !== null
+          ? `Próxima toma en ${recordatorio.intervalo_horas} horas. Quedan ${tomasRestantes} tomas`
+          : `Próxima toma en ${recordatorio.intervalo_horas} horas`
+      });
+    }
 
     cargarRecordatorios();
   }
@@ -373,15 +513,61 @@ export default function Recordatorios() {
             Nunca olvides tomar tus medicamentos a tiempo
           </p>
         </div>
-        <Button 
-          onClick={() => setMostrarFormulario(!mostrarFormulario)}
-          size="lg"
-          className="gap-2 min-h-[52px]"
-        >
-          <Plus className="h-6 w-6" />
-          Nuevo Recordatorio
-        </Button>
+        <div className="flex gap-2">
+          {!permisoNotificaciones && (
+            <Button 
+              onClick={activarNotificaciones}
+              variant="outline"
+              size="lg"
+              className="gap-2 min-h-[52px]"
+            >
+              <Bell className="h-6 w-6" />
+              Activar Alertas
+            </Button>
+          )}
+          <Button 
+            onClick={() => setMostrarFormulario(!mostrarFormulario)}
+            size="lg"
+            className="gap-2 min-h-[52px]"
+          >
+            <Plus className="h-6 w-6" />
+            Nuevo
+          </Button>
+        </div>
       </div>
+
+      {/* Alerta de notificaciones */}
+      {!permisoNotificaciones && (
+        <Alert>
+          <Bell className="h-5 w-5" />
+          <AlertDescription className="text-base">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <strong>Activa las notificaciones</strong> para recibir alertas <strong>incluso con el navegador cerrado</strong>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={probarAlarma} variant="outline" size="sm" className="gap-2">
+                  <Volume2 className="h-4 w-4" />
+                  Probar Sonido
+                </Button>
+                <Button onClick={activarNotificaciones} size="sm">
+                  Activar
+                </Button>
+              </div>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Estado del Service Worker */}
+      {serviceWorkerRegistered && (
+        <Alert className="border-green-200 bg-green-50">
+          <Wifi className="h-5 w-5 text-green-600" />
+          <AlertDescription className="text-base text-green-800">
+            <strong>✓ Modo offline activado:</strong> Recibirás notificaciones aunque cierres el navegador
+          </AlertDescription>
+        </Alert>
+      )}
 
       {mostrarFormulario && (
         <Card>
@@ -459,6 +645,21 @@ export default function Recordatorios() {
                   placeholder="Ej: 2 tabletas, 5ml, etc."
                   className="w-full px-4 py-3 text-base border rounded-md min-h-[52px]"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-base font-medium">¿Cuántas pastillas/ampollas tienes? (opcional)</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={tomasTotales}
+                  onChange={(e) => setTomasTotales(e.target.value)}
+                  placeholder="Ej: 20 pastillas, 10 ampollas"
+                  className="w-full px-4 py-3 text-base border rounded-md min-h-[52px]"
+                />
+                <p className="text-sm text-muted-foreground">
+                  El recordatorio se desactivará automáticamente cuando termines todas las tomas
+                </p>
               </div>
 
               <div className="space-y-2">

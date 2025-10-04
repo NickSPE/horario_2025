@@ -12,9 +12,13 @@ CREATE TABLE IF NOT EXISTS recordatorios_medicamentos (
   intervalo_horas DECIMAL(10, 8) NOT NULL, -- Permite decimales para pruebas (ej: 0.00277778 = 10 segundos)
   dosis_personalizada TEXT, -- Opcional: sobreescribe dosis del medicamento
   
+  -- Contador de tomas
+  tomas_totales INTEGER, -- Total de tomas que debe tomar (ej: 20 pastillas)
+  tomas_completadas INTEGER DEFAULT 0, -- Cuántas ha tomado ya
+  
   -- Tiempo
   inicio_tratamiento TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  proxima_toma TIMESTAMP WITH TIME ZONE NOT NULL,
+  proxima_toma TIMESTAMP WITH TIME ZONE, -- NULL permitido cuando termina el tratamiento
   ultima_toma TIMESTAMP WITH TIME ZONE,
   
   -- Estado
@@ -141,6 +145,12 @@ SELECT
   c.nombre AS categoria_nombre,
   r.intervalo_horas,
   r.dosis_personalizada,
+  r.tomas_totales,
+  r.tomas_completadas,
+  CASE 
+    WHEN r.tomas_totales IS NOT NULL THEN r.tomas_totales - r.tomas_completadas
+    ELSE NULL
+  END AS tomas_restantes,
   COALESCE(r.dosis_personalizada, m.dosis_recomendada) AS dosis_a_tomar,
   r.inicio_tratamiento,
   r.proxima_toma,
@@ -149,10 +159,16 @@ SELECT
   r.notas,
   r.created_at,
   r.updated_at,
-  -- Calcular tiempo restante en segundos
-  EXTRACT(EPOCH FROM (r.proxima_toma - NOW())) AS segundos_restantes,
-  -- Verificar si ya pasó la hora
-  (r.proxima_toma <= NOW()) AS debe_tomar_ahora
+  -- Calcular tiempo restante en segundos (NULL si tratamiento terminó)
+  CASE 
+    WHEN r.proxima_toma IS NULL THEN NULL
+    ELSE EXTRACT(EPOCH FROM (r.proxima_toma - NOW()))
+  END AS segundos_restantes,
+  -- Verificar si ya pasó la hora (FALSE si tratamiento terminó)
+  CASE
+    WHEN r.proxima_toma IS NULL THEN false
+    ELSE (r.proxima_toma <= NOW())
+  END AS debe_tomar_ahora
 FROM recordatorios_medicamentos r
 JOIN medicamentos m ON r.medicamento_id = m.id
 LEFT JOIN categorias_medicamentos c ON m.categoria_id = c.id

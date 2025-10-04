@@ -6,11 +6,14 @@ export interface RecordatorioMedicamento {
   medicamento_id: string;
   intervalo_horas: number; // 6, 8, 12, 24
   dosis_personalizada?: string;
+  tomas_totales?: number; // Total de pastillas/ampollas que tiene
+  tomas_completadas: number; // Cuántas ha tomado
   inicio_tratamiento: string;
-  proxima_toma: string;
+  proxima_toma: string | null; // Nullable cuando termina el tratamiento
   ultima_toma?: string;
   activo: boolean;
   notas?: string;
+  creado_por_profesional_id?: string; // UUID del profesional que creó el recordatorio
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +27,12 @@ export interface RecordatorioCompleto extends RecordatorioMedicamento {
   dosis_a_tomar: string;
   segundos_restantes: number;
   debe_tomar_ahora: boolean;
+  tomas_restantes?: number; // Cuántas le quedan
+  // Información del profesional que creó el recordatorio
+  profesional_nombre?: string;
+  profesional_apellido?: string;
+  profesional_licencia?: string;
+  profesional_especialidad?: string;
 }
 
 export interface HistorialToma {

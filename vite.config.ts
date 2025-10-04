@@ -2,6 +2,7 @@ import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { createServer } from "./server";
+import { copyFileSync } from "fs";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -17,8 +18,14 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     outDir: "dist/spa",
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+      }
+    }
   },
-  plugins: [react(), expressPlugin()],
+  publicDir: 'public',
+  plugins: [react(), expressPlugin(), serviceWorkerPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./client"),
@@ -36,6 +43,25 @@ function expressPlugin(): Plugin {
 
       // Add Express app as middleware to Vite dev server
       server.middlewares.use(app);
+    },
+  };
+}
+
+function serviceWorkerPlugin(): Plugin {
+  return {
+    name: "service-worker-plugin",
+    apply: "build",
+    closeBundle() {
+      // Copiar service-worker.js al directorio de build
+      try {
+        copyFileSync(
+          path.resolve(__dirname, "public/service-worker.js"),
+          path.resolve(__dirname, "dist/spa/service-worker.js")
+        );
+        console.log("✓ Service Worker copiado a dist/spa");
+      } catch (error) {
+        console.error("Error copiando Service Worker:", error);
+      }
     },
   };
 }
