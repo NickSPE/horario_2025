@@ -1,73 +1,19 @@
-import { useEffect, useState } from 'react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { getSupabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/use-auth';
-import { Search, UserPlus, Pill, Plus, CheckCircle2, Users, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getSupabase } from '@/lib/supabase';
 import type { MedicamentoConCategoria } from '@shared/medicamentos';
+import type { Paciente, PacienteAsignado, PacienteConRecordatorios } from '@shared/pacients';
 import { INTERVALOS_DISPONIBLES } from '@shared/recordatorios';
-
-interface Paciente {
-  id: string;
-  user_id: string;
-  email: string;
-  nombre: string;
-  apellido: string;
-  telefono?: string;
-  dni?: string;
-  esta_asignado: boolean;
-}
-
-interface PacienteAsignado {
-  relacion_id: string;
-  paciente_id: string;
-  paciente_email: string;
-  paciente_nombre: string;
-  paciente_apellido: string;
-  paciente_telefono?: string;
-  paciente_dni?: string;
-  fecha_asignacion: string;
-  recordatorios_activos: number;
-}
-
-interface RecordatorioPaciente {
-  recordatorio_id: string;
-  medicamento_nombre: string;
-  categoria_nombre: string;
-  intervalo_horas: number;
-  dosis_a_tomar: string;
-  tomas_totales?: number;
-  tomas_completadas: number;
-  tomas_restantes?: number;
-  ultima_toma?: string;
-  proxima_toma?: string;
-  estado_recordatorio: 'al_dia' | 'atrasado' | 'completado' | 'sin_iniciar';
-  porcentaje_adherencia?: number;
-  horas_hasta_proxima_toma?: number;
-  notas?: string;
-}
-
-interface PacienteConRecordatorios {
-  paciente_id: string;
-  paciente_nombre: string;
-  paciente_apellido: string;
-  paciente_email: string;
-  paciente_dni?: string;
-  paciente_telefono?: string;
-  total_recordatorios: number;
-  recordatorios_al_dia: number;
-  recordatorios_atrasados: number;
-  recordatorios_completados: number;
-  adherencia_promedio?: number;
-  recordatorios: RecordatorioPaciente[];
-}
+import { CheckCircle2, Clock, Pill, Plus, Search, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function AsignarRecordatorios() {
   const { user } = useAuth();
@@ -85,7 +31,7 @@ export default function AsignarRecordatorios() {
   // Dialog para asignar recordatorio
   const [dialogAbierto, setDialogAbierto] = useState(false);
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState<PacienteAsignado | null>(null);
-  
+
   // Formulario de recordatorio
   const [medicamentoSeleccionado, setMedicamentoSeleccionado] = useState('');
   const [intervalo, setIntervalo] = useState('8');
@@ -136,7 +82,7 @@ export default function AsignarRecordatorios() {
 
     (data || []).forEach((row: any) => {
       const pacienteId = row.paciente_id;
-      
+
       if (!pacientesMap.has(pacienteId)) {
         pacientesMap.set(pacienteId, {
           paciente_id: row.paciente_id,
@@ -185,7 +131,7 @@ export default function AsignarRecordatorios() {
       const adherencias = paciente.recordatorios
         .map(r => r.porcentaje_adherencia)
         .filter((a): a is number => a !== undefined && a !== null);
-      
+
       if (adherencias.length > 0) {
         paciente.adherencia_promedio = Math.round(
           adherencias.reduce((sum, a) => sum + a, 0) / adherencias.length
@@ -263,7 +209,7 @@ export default function AsignarRecordatorios() {
       } else {
         console.log(`✅ Encontrados ${data?.length || 0} pacientes`);
         setResultadosBusqueda(data || []);
-        
+
         if ((data || []).length === 0) {
           toast({
             title: 'Sin resultados',
@@ -416,13 +362,13 @@ export default function AsignarRecordatorios() {
     setTomasTotales('');
     setNotas('');
     setDialogAbierto(false);
-    
+
     // Recargar datos actualizados
     cargarPacientesAsignados();
     cargarPacientesConRecordatorios();
   }
 
-  const medicamentoInfo = medicamentoSeleccionado 
+  const medicamentoInfo = medicamentoSeleccionado
     ? medicamentos.find(m => m.id === medicamentoSeleccionado)
     : null;
 
@@ -487,9 +433,9 @@ export default function AsignarRecordatorios() {
                   {INTERVALOS_DISPONIBLES.map(int => {
                     const vecesAlDia = Math.round(24 / int.value);
                     return (
-                      <SelectItem 
-                        key={int.value} 
-                        value={int.value.toString()} 
+                      <SelectItem
+                        key={int.value}
+                        value={int.value.toString()}
                         className={`text-base py-3 ${int.esPrueba ? 'bg-yellow-50 border-l-4 border-yellow-500' : ''}`}
                       >
                         <div>
@@ -632,13 +578,13 @@ export default function AsignarRecordatorios() {
               </p>
               <div className="space-y-2">
                 {resultadosBusqueda.map(paciente => (
-                  <div 
+                  <div
                     key={paciente.id}
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition"
                   >
                     <div>
                       <p className="font-medium text-base">
-                        {paciente.nombre || paciente.apellido 
+                        {paciente.nombre || paciente.apellido
                           ? `${paciente.nombre || ''} ${paciente.apellido || ''}`.trim()
                           : 'Sin nombre'}
                         {paciente.dni && <span className="ml-2 text-primary">• DNI: {paciente.dni}</span>}
@@ -702,7 +648,7 @@ export default function AsignarRecordatorios() {
             <Users className="h-6 w-6" />
             Mis Pacientes ({pacientesConRecordatorios.length})
           </h3>
-          
+
           {/* Filtros */}
           <div className="flex gap-2 flex-wrap">
             <Button
@@ -794,13 +740,13 @@ export default function AsignarRecordatorios() {
                         Nuevo Recordatorio
                       </Button>
                     </div>
-                    
+
                     {/* Resumen de adherencia */}
                     {paciente.adherencia_promedio !== undefined && (
                       <div className="mt-3 flex items-center gap-4 flex-wrap">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">Adherencia:</span>
-                          <Badge 
+                          <Badge
                             variant={paciente.adherencia_promedio >= 80 ? 'default' : paciente.adherencia_promedio >= 60 ? 'secondary' : 'destructive'}
                             className="text-base px-2"
                           >
@@ -873,14 +819,13 @@ export default function AsignarRecordatorios() {
                                     </span>
                                   </div>
                                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div 
-                                      className={`h-full transition-all ${
-                                        rec.porcentaje_adherencia && rec.porcentaje_adherencia >= 80 
-                                          ? 'bg-green-600' 
+                                    <div
+                                      className={`h-full transition-all ${rec.porcentaje_adherencia && rec.porcentaje_adherencia >= 80
+                                          ? 'bg-green-600'
                                           : rec.porcentaje_adherencia && rec.porcentaje_adherencia >= 60
-                                          ? 'bg-yellow-600'
-                                          : 'bg-red-600'
-                                      }`}
+                                            ? 'bg-yellow-600'
+                                            : 'bg-red-600'
+                                        }`}
                                       style={{ width: `${rec.porcentaje_adherencia || 0}%` }}
                                     />
                                   </div>
@@ -916,8 +861,8 @@ export default function AsignarRecordatorios() {
                                       {rec.horas_hasta_proxima_toma !== undefined && rec.horas_hasta_proxima_toma < 0
                                         ? `Atrasada ${Math.abs(rec.horas_hasta_proxima_toma).toFixed(1)}h`
                                         : rec.horas_hasta_proxima_toma !== undefined && rec.horas_hasta_proxima_toma < 24
-                                        ? `En ${rec.horas_hasta_proxima_toma.toFixed(1)}h`
-                                        : new Date(rec.proxima_toma).toLocaleString('es-ES', {
+                                          ? `En ${rec.horas_hasta_proxima_toma.toFixed(1)}h`
+                                          : new Date(rec.proxima_toma).toLocaleString('es-ES', {
                                             day: '2-digit',
                                             month: '2-digit',
                                             hour: '2-digit',

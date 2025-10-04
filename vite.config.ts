@@ -1,14 +1,14 @@
-import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import path from "path";
-import { createServer } from "./server";
 import { copyFileSync } from "fs";
+import path from "path";
+import { defineConfig, Plugin } from "vite";
+import { createServer } from "./server";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    port: 8000,
     fs: {
       // Allow serving files from project root, client and shared folders.
       // The repo contains a top-level `index.html` so include the root ("./").

@@ -27,7 +27,6 @@ import ProfesionalAsignar from "@/pages/profesional/Asignar";
 import ProfesionalInicio from "@/pages/profesional/Inicio";
 import ProfesionalLayout from "@/pages/profesional/Layout";
 import Medicamentos from "@/pages/profesional/Medicamentos";
-import ProfesionalPacientes from "@/pages/profesional/Pacientes";
 import ProfesionalPerfil from "@/pages/profesional/Perfil";
 import ProfesionalRecetas from "@/pages/profesional/Recetas";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -63,7 +62,6 @@ const App = () => (
                 }
               >
                 <Route index element={<ProfesionalInicio />} />
-                <Route path="pacientes" element={<ProfesionalPacientes />} />
                 <Route path="recetas" element={<ProfesionalRecetas />} />
                 <Route path="medicamentos" element={<Medicamentos />} />
                 <Route path="asignar" element={<ProfesionalAsignar />} />
