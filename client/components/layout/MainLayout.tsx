@@ -42,18 +42,15 @@ export default function MainLayout() {
                 <NavLink to="/" className={navLinkClass} end>
                   Inicio
                 </NavLink>
-                <a
-                  href="/#funciones"
-                  className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent"
-                >
+                <NavLink to="/funciones" className={navLinkClass}>
                   Funciones
-                </a>
-                <a
-                  href="/#como-funciona"
-                  className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent"
-                >
+                </NavLink>
+                <NavLink to="/como-funciona" className={navLinkClass}>
                   Cómo funciona
-                </a>
+                </NavLink>
+                <NavLink to="/contacto" className={navLinkClass}>
+                  Contacto
+                </NavLink>
               </nav>
             )
           }
@@ -92,22 +89,75 @@ export default function MainLayout() {
         <Outlet />
       </main>
 
-      <footer className="border-t">
-        <div className="container py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <p>
-            © {new Date().getFullYear()} Horario Médico. Todos los derechos
-            reservados.
-          </p>
-          <div className="flex items-center gap-4">
-            <a href="#privacidad" className="hover:text-foreground">
-              Privacidad
-            </a>
-            <a href="#terminos" className="hover:text-foreground">
-              Términos
-            </a>
-            <a href="#contacto" className="hover:text-foreground">
-              Contacto
-            </a>
+      <footer className="border-t bg-muted/30">
+        <div className="container py-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-6">
+            {/* Columna 1: Acerca de */}
+            <div>
+              <h3 className="font-semibold text-foreground mb-3">Horario Médico</h3>
+              <p className="text-sm text-muted-foreground">
+                Tu asistente personal para nunca olvidar tomar tus medicamentos.
+              </p>
+            </div>
+
+            {/* Columna 2: Producto */}
+            <div>
+              <h3 className="font-semibold text-foreground mb-3">Producto</h3>
+              <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                <Link to="/funciones" className="hover:text-foreground transition-colors">
+                  Funciones
+                </Link>
+                <Link to="/como-funciona" className="hover:text-foreground transition-colors">
+                  Cómo funciona
+                </Link>
+              </div>
+            </div>
+
+            {/* Columna 3: Legal */}
+            <div>
+              <h3 className="font-semibold text-foreground mb-3">Legal</h3>
+              <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                <Link to="/terminos" className="hover:text-foreground transition-colors">
+                  Términos y condiciones
+                </Link>
+                <Link to="/privacidad" className="hover:text-foreground transition-colors">
+                  Política de privacidad
+                </Link>
+              </div>
+            </div>
+
+            {/* Columna 4: Soporte */}
+            <div>
+              <h3 className="font-semibold text-foreground mb-3">Soporte</h3>
+              <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                <Link to="/contacto" className="hover:text-foreground transition-colors">
+                  Contacto
+                </Link>
+                <a href="mailto:hola@horariomedico.com" className="hover:text-foreground transition-colors">
+                  hola@horariomedico.com
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Línea divisoria */}
+          <div className="border-t pt-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+              <p>
+                © {new Date().getFullYear()} Horario Médico. Todos los derechos reservados.
+              </p>
+              <div className="flex items-center gap-4">
+                <Link to="/terminos" className="hover:text-foreground transition-colors">
+                  Términos
+                </Link>
+                <Link to="/privacidad" className="hover:text-foreground transition-colors">
+                  Privacidad
+                </Link>
+                <Link to="/contacto" className="hover:text-foreground transition-colors">
+                  Contacto
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </footer>

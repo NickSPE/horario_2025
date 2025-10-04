@@ -6,8 +6,15 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
-import Login from "@/pages/Login";
-import Register from "@/pages/Register";
+import Index from "@/pages/public/Index";
+import Login from "@/pages/public/Login";
+import Register from "@/pages/public/Register";
+import Funciones from "@/pages/public/Funciones";
+import ComoFunciona from "@/pages/public/ComoFunciona";
+import Terminos from "@/pages/public/Terminos";
+import Privacidad from "@/pages/public/Privacidad";
+import Contacto from "@/pages/public/Contacto";
+import NotFound from "@/pages/public/NotFound";
 import PacienteCitas from "@/pages/paciente/Citas";
 import PacienteInicio from "@/pages/paciente/Inicio";
 import PacienteLayout from "@/pages/paciente/Layout";
@@ -26,8 +33,6 @@ import ProfesionalRecetas from "@/pages/profesional/Recetas";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +48,11 @@ const App = () => (
               <Route index element={<Index />} />
               <Route path="login" element={<Login />} />
               <Route path="registro" element={<Register />} />
+              <Route path="funciones" element={<Funciones />} />
+              <Route path="como-funciona" element={<ComoFunciona />} />
+              <Route path="terminos" element={<Terminos />} />
+              <Route path="privacidad" element={<Privacidad />} />
+              <Route path="contacto" element={<Contacto />} />
 
               <Route
                 path="dashboard/profesional"
