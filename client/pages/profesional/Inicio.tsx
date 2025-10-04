@@ -1,6 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { getSupabase } from "@/lib/supabase";
+import { router } from "@inertiajs/react";
+import { useEffect, useState } from "react";
 
 interface Row {
   id: number;
@@ -11,76 +13,74 @@ interface Row {
   estado: "Activa" | "Completada";
 }
 
+interface PacienteReceta {
+  paciente_id: string;
+  paciente_nombre: string;
+  paciente_apellido: string;
+  paciente_email: string;
+  recordatorio_id: string;
+  medicamento_nombre: string;
+  dosis_a_tomar: string;
+  inicio_tratamiento: string;
+  estado_recordatorio: string;
+  porcentaje_adherencia: number;
+}
+
+interface ResumenPaciente {
+  paciente_id: string;
+  paciente_nombre: string;
+  paciente_apellido: string;
+  paciente_email: string;
+  total_medicamentos: number;
+  medicamentos_activos: number;
+  adherencia_promedio: number;
+  ultimo_medicamento: string;
+  fecha_asignacion: string;
+}
+
 export default function ProfesionalInicio() {
-  const [rows, setRows] = useState<Row[]>([
-    {
-      id: 1,
-      fecha: "15/07/2024",
-      paciente: "Carlos Mendoza",
-      medicamento: "Paracetamol",
-      dosis: "500mg cada 8 horas",
-      estado: "Activa",
-    },
-    {
-      id: 2,
-      fecha: "10/07/2024",
-      paciente: "Ana López",
-      medicamento: "Ibuprofeno",
-      dosis: "400mg cada 6 horas",
-      estado: "Completada",
-    },
-    {
-      id: 3,
-      fecha: "05/07/2024",
-      paciente: "Luis García",
-      medicamento: "Amoxicilina",
-      dosis: "250mg cada 12 horas",
-      estado: "Activa",
-    },
-    {
-      id: 4,
-      fecha: "01/07/2024",
-      paciente: "María Torres",
-      medicamento: "Omeprazol",
-      dosis: "20mg una vez al día",
-      estado: "Completada",
-    },
-    {
-      id: 5,
-      fecha: "25/06/2024",
-      paciente: "Jorge Pérez",
-      medicamento: "Metformina",
-      dosis: "850mg dos veces al día",
-      estado: "Activa",
-    },
-  ]);
+  const supabase = getSupabase();
+  const [pacientesConRecetas, setPacientesConRecetas] = useState<PacienteReceta[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const addReceta = () => {
-    setRows((r) => [
-      {
-        id: Date.now(),
-        fecha: new Date().toLocaleDateString(),
-        paciente: "Nuevo Paciente",
-        medicamento: "Nueva receta",
-        dosis: "500mg",
-        estado: "Activa",
-      },
-      ...r,
-    ]);
+  // Función para obtener pacientes con recetas del profesional actual
+  const obtenerPacientesConRecetas = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('vista_pacientes_recordatorios_profesional')
+        .select(`
+          paciente_id,
+          paciente_nombre,
+          paciente_apellido,
+          paciente_email,
+          recordatorio_id,
+          medicamento_nombre,
+          dosis_a_tomar,
+          inicio_tratamiento,
+          estado_recordatorio,
+          porcentaje_adherencia
+        `)
+        .not('recordatorio_id', 'is', null); // Solo pacientes que tienen recordatorios
+
+      if (error) {
+        console.error('Error al obtener pacientes con recetas:', error);
+        return;
+      }
+
+      setPacientesConRecetas(data || []);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleEstado = (id: number) => {
-    setRows((r) =>
-      r.map((row) =>
-        row.id === id
-          ? {
-            ...row,
-            estado: row.estado === "Activa" ? "Completada" : "Activa",
-          }
-          : row,
-      ),
-    );
-  };
+  // Cargar datos al montar el componente
+  useEffect(() => {
+    obtenerPacientesConRecetas();
+  }, []);
+
 
   return (
     <div className="grid gap-6">
@@ -93,47 +93,89 @@ export default function ProfesionalInicio() {
           videollamadas.
         </p>
         <div className="mt-4 flex gap-3">
-          <Button onClick={addReceta}>Nueva Receta</Button>
+          <Button onClick={() => router.get(`dashboard/profesional/asignar`)}>Nueva Receta</Button>
+          <Button
+            onClick={obtenerPacientesConRecetas}
+            variant="outline"
+            disabled={loading}
+          >
+            {loading ? "Cargando..." : "Actualizar Datos"}
+          </Button>
         </div>
       </header>
 
+      {/* Sección de Pacientes con Recetas Reales */}
       <div className="rounded-lg border">
-        <div className="p-4 font-semibold">Historial de Recetas</div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-accent/50 text-muted-foreground">
-              <tr>
-                <th className="text-left p-3">Fecha</th>
-                <th className="text-left p-3">Paciente</th>
-                <th className="text-left p-3">Medicamento</th>
-                <th className="text-left p-3">Dosis</th>
-                <th className="text-left p-3">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id} className="border-t">
-                  <td className="p-3">{row.fecha}</td>
-                  <td className="p-3 font-medium">{row.paciente}</td>
-                  <td className="p-3">{row.medicamento}</td>
-                  <td className="p-3">{row.dosis}</td>
-                  <td className="p-3">
-                    <button onClick={() => toggleEstado(row.id)}>
+        <div className="p-4 font-semibold">
+          Mis Pacientes con Recetas ({pacientesConRecetas.length})
+        </div>
+        {loading ? (
+          <div className="p-4 text-center text-muted-foreground">
+            Cargando pacientes...
+          </div>
+        ) : pacientesConRecetas.length === 0 ? (
+          <div className="p-4 text-center text-muted-foreground">
+            No tienes pacientes con recetas asignadas aún.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-accent/50 text-muted-foreground">
+                <tr>
+                  <th className="text-left p-3">Paciente</th>
+                  <th className="text-left p-3">Email</th>
+                  <th className="text-left p-3">Medicamento</th>
+                  <th className="text-left p-3">Dosis</th>
+                  <th className="text-left p-3">Inicio</th>
+                  <th className="text-left p-3">Estado</th>
+                  <th className="text-left p-3">Adherencia</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pacientesConRecetas.map((paciente) => (
+                  <tr key={`${paciente.paciente_id}-${paciente.recordatorio_id}`} className="border-t">
+                    <td className="p-3 font-medium">
+                      {paciente.paciente_nombre} {paciente.paciente_apellido}
+                    </td>
+                    <td className="p-3 text-muted-foreground">{paciente.paciente_email}</td>
+                    <td className="p-3">{paciente.medicamento_nombre}</td>
+                    <td className="p-3">{paciente.dosis_a_tomar}</td>
+                    <td className="p-3">
+                      {new Date(paciente.inicio_tratamiento).toLocaleDateString('es-ES')}
+                    </td>
+                    <td className="p-3">
                       <Badge
                         variant={
-                          row.estado === "Activa" ? "secondary" : "outline"
+                          paciente.estado_recordatorio === "al_dia"
+                            ? "default"
+                            : paciente.estado_recordatorio === "atrasado"
+                              ? "destructive"
+                              : paciente.estado_recordatorio === "completado"
+                                ? "secondary"
+                                : "outline"
                         }
                       >
-                        {row.estado}
+                        {paciente.estado_recordatorio === "al_dia" && "Al día"}
+                        {paciente.estado_recordatorio === "atrasado" && "Atrasado"}
+                        {paciente.estado_recordatorio === "completado" && "Completado"}
+                        {paciente.estado_recordatorio === "sin_iniciar" && "Sin iniciar"}
                       </Badge>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+                    <td className="p-3">
+                      {paciente.porcentaje_adherencia !== null
+                        ? `${paciente.porcentaje_adherencia}%`
+                        : "N/A"
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
-  );
-}
+
+  )
+
+};
