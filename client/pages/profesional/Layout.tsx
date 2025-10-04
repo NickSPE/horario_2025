@@ -9,8 +9,7 @@ import {
   LogOut,
   Menu,
   Pill,
-  User,
-  Users
+  User
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
@@ -26,7 +25,6 @@ const link = ({ isActive }: { isActive: boolean }) =>
 
 const menuItems = [
   { to: ".", label: "Inicio", icon: Home, end: true },
-  { to: "pacientes", label: "Pacientes", icon: Users },
   { to: "recetas", label: "Recetas", icon: FileText },
   { to: "medicamentos", label: "Medicamentos", icon: Pill },
   { to: "asignar", label: "Horarios", icon: Clock },
