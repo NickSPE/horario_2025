@@ -33,9 +33,9 @@ export default function MainLayout() {
           </Link>
           {
             isAuthenticated && user ? (
-              <span className="text-sm text-muted-foreground">
-                Hola, {user.email}!
-              </span>
+              <nav className="hidden md:flex items-center gap-1">
+                Bienvenidos al dashboard {user.user_metadata?.role === 'profesional' ? 'profesional' : 'paciente'}
+              </nav>
             ) : (
 
               <nav className="hidden md:flex items-center gap-1">
@@ -63,15 +63,7 @@ export default function MainLayout() {
             {isAuthenticated ? (
               // Usuario autenticado - mostrar perfil y logout
               <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    // logout(); // Implementa tu función de logout
-                    signOut();
-                  }}
-                >
-                  Cerrar sesión
-                </Button>
+                {null}
               </>
             ) : (
               // Usuario no autenticado - mostrar login y registro

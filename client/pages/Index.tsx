@@ -1,8 +1,41 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/use-auth";
+import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Index() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirigir automáticamente si el usuario ya está autenticado
+  useEffect(() => {
+    if (!loading && user) {
+      const userRole = user.user_metadata?.role;
+      if (userRole === "profesional") {
+        navigate("/dashboard/profesional", { replace: true });
+      } else if (userRole === "paciente") {
+        navigate("/dashboard/paciente", { replace: true });
+      } else {
+        // Si no tiene rol definido, asumimos paciente por defecto
+        navigate("/dashboard/paciente", { replace: true });
+      }
+    }
+  }, [user, loading, navigate]);
+
+  // Mostrar loading mientras se verifica la autenticación
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Solo mostrar la página de inicio si el usuario no está autenticado
+  if (user) {
+    return null; // El useEffect se encargará de la redirección
+  }
   return (
     <div className="bg-gradient-to-b from-primary/5 to-background">
       <section className="container py-16 md:py-24 grid items-center gap-10 md:grid-cols-2">
