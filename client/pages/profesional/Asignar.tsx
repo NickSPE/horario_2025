@@ -8,9 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import type { Paciente, PacienteAsignado, PacienteConRecordatorios } from '@/lib/pacients';
 import { getSupabase } from '@/lib/supabase';
 import type { MedicamentoConCategoria } from '@shared/medicamentos';
-import type { Paciente, PacienteAsignado, PacienteConRecordatorios } from '@shared/pacients';
 import { INTERVALOS_DISPONIBLES } from '@shared/recordatorios';
 import { CheckCircle2, Clock, Pill, Plus, Search, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -821,10 +821,10 @@ export default function AsignarRecordatorios() {
                                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                                     <div
                                       className={`h-full transition-all ${rec.porcentaje_adherencia && rec.porcentaje_adherencia >= 80
-                                          ? 'bg-green-600'
-                                          : rec.porcentaje_adherencia && rec.porcentaje_adherencia >= 60
-                                            ? 'bg-yellow-600'
-                                            : 'bg-red-600'
+                                        ? 'bg-green-600'
+                                        : rec.porcentaje_adherencia && rec.porcentaje_adherencia >= 60
+                                          ? 'bg-yellow-600'
+                                          : 'bg-red-600'
                                         }`}
                                       style={{ width: `${rec.porcentaje_adherencia || 0}%` }}
                                     />
