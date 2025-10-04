@@ -1,29 +1,40 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/use-auth";
+import { Bell, CheckCircle2, Clock, Pill, Users } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Pill, Clock, Users, Bell, CheckCircle2, Shield } from "lucide-react";
 
 
 export default function Index() {
+
+  const { user } = useAuth();
+  if (user) {
+    // Redirigir según el rol del usuario
+    const dashboardPath = user.role === "profesional" ? "/dashboard/profesional" : "/dashboard/paciente";
+    window.location.href = dashboardPath;
+    return null; // Evitar renderizado adicional
+  }
+
+
   return (
     <div className="bg-background min-h-screen">
       {/* Hero Section con gradiente mejorado */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100/20 via-transparent to-transparent" />
-        
+
         <div className="container relative py-16 md:py-24 lg:py-32">
           <div className="max-w-3xl mx-auto text-center space-y-6 md:space-y-8">
             <Badge variant="secondary" className="text-sm px-4 py-2">
               <Bell className="h-4 w-4 mr-2" />
               Recordatorios inteligentes para tu salud
             </Badge>
-            
+
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               Nunca olvides tomar tus medicamentos
             </h1>
-            
+
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Sistema profesional de recordatorios médicos. Para pacientes que cuidan su salud y profesionales que cuidan a sus pacientes.
             </p>
