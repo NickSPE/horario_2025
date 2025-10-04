@@ -1,6 +1,9 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { Link, NavLink, Outlet } from "react-router-dom";
+// Importa tu hook de autenticación aquí
+// import { useAuth } from "@/hooks/useAuth";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -11,6 +14,11 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   );
 
 export default function MainLayout() {
+  // Descomenta y ajusta según tu implementación de autenticación
+  const { isAuthenticated, user, signOut } = useAuth();
+
+  // Temporalmente para testing - reemplaza con tu lógica real
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -23,30 +31,59 @@ export default function MainLayout() {
               Horario Médico
             </span>
           </Link>
-          <nav className="hidden md:flex items-center gap-1">
-            <NavLink to="/" className={navLinkClass} end>
-              Inicio
-            </NavLink>
-            <a
-              href="/#funciones"
-              className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent"
-            >
-              Funciones
-            </a>
-            <a
-              href="/#como-funciona"
-              className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent"
-            >
-              Cómo funciona
-            </a>
-          </nav>
+          {
+            isAuthenticated && user ? (
+              <span className="text-sm text-muted-foreground">
+                Hola, {user.email}!
+              </span>
+            ) : (
+
+              <nav className="hidden md:flex items-center gap-1">
+                <NavLink to="/" className={navLinkClass} end>
+                  Inicio
+                </NavLink>
+                <a
+                  href="/#funciones"
+                  className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent"
+                >
+                  Funciones
+                </a>
+                <a
+                  href="/#como-funciona"
+                  className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent"
+                >
+                  Cómo funciona
+                </a>
+              </nav>
+            )
+          }
+
+          {/* Renderizado condicional basado en autenticación */}
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost">
-              <Link to="/login">Iniciar sesión</Link>
-            </Button>
-            <Button asChild>
-              <Link to="/registro">Registrarse</Link>
-            </Button>
+            {isAuthenticated ? (
+              // Usuario autenticado - mostrar perfil y logout
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // logout(); // Implementa tu función de logout
+                    signOut();
+                  }}
+                >
+                  Cerrar sesión
+                </Button>
+              </>
+            ) : (
+              // Usuario no autenticado - mostrar login y registro
+              <>
+                <Button asChild variant="ghost">
+                  <Link to="/login">Iniciar sesión</Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/registro">Registrarse</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>

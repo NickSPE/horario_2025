@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 interface Row {
@@ -74,9 +74,9 @@ export default function ProfesionalInicio() {
       r.map((row) =>
         row.id === id
           ? {
-              ...row,
-              estado: row.estado === "Activa" ? "Completada" : "Activa",
-            }
+            ...row,
+            estado: row.estado === "Activa" ? "Completada" : "Activa",
+          }
           : row,
       ),
     );
@@ -94,12 +94,6 @@ export default function ProfesionalInicio() {
         </p>
         <div className="mt-4 flex gap-3">
           <Button onClick={addReceta}>Nueva Receta</Button>
-          <Button
-            variant="secondary"
-            onClick={() => alert("Iniciando videollamada...")}
-          >
-            Iniciar Videollamada
-          </Button>
         </div>
       </header>
 

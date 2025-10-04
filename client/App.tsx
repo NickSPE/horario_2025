@@ -1,34 +1,33 @@
 import "./global.css";
 
-import { Toaster } from "@/components/ui/toaster";
-import { createRoot } from "react-dom/client";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import MainLayout from "@/components/layout/MainLayout";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/hooks/use-auth";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
-import ProfesionalLayout from "@/pages/profesional/Layout";
-import ProfesionalInicio from "@/pages/profesional/Inicio";
-import ProfesionalPacientes from "@/pages/profesional/Pacientes";
-import ProfesionalRecetas from "@/pages/profesional/Recetas";
-import ProfesionalVideollamadas from "@/pages/profesional/Videollamadas";
-import ProfesionalPerfil from "@/pages/profesional/Perfil";
-import ProfesionalAsignar from "@/pages/profesional/Asignar";
-import Medicamentos from "@/pages/profesional/Medicamentos";
-import PacienteLayout from "@/pages/paciente/Layout";
-import PacienteInicio from "@/pages/paciente/Inicio";
-import PacienteRecetas from "@/pages/paciente/Recetas";
 import PacienteCitas from "@/pages/paciente/Citas";
+import PacienteInicio from "@/pages/paciente/Inicio";
+import PacienteLayout from "@/pages/paciente/Layout";
+import PacienteMedicamentos from "@/pages/paciente/Medicamentos";
 import PacienteMensajes from "@/pages/paciente/Mensajes";
 import PacientePerfil from "@/pages/paciente/Perfil";
-import PacienteMedicamentos from "@/pages/paciente/Medicamentos";
+import PacienteRecetas from "@/pages/paciente/Recetas";
 import Recordatorios from "@/pages/paciente/Recordatorios";
-import { AuthProvider } from "@/hooks/use-auth";
-import ProtectedRoute from "@/components/ProtectedRoute";
+import ProfesionalAsignar from "@/pages/profesional/Asignar";
+import ProfesionalInicio from "@/pages/profesional/Inicio";
+import ProfesionalLayout from "@/pages/profesional/Layout";
+import Medicamentos from "@/pages/profesional/Medicamentos";
+import ProfesionalPacientes from "@/pages/profesional/Pacientes";
+import ProfesionalPerfil from "@/pages/profesional/Perfil";
+import ProfesionalRecetas from "@/pages/profesional/Recetas";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -58,10 +57,6 @@ const App = () => (
                 <Route path="recetas" element={<ProfesionalRecetas />} />
                 <Route path="medicamentos" element={<Medicamentos />} />
                 <Route path="asignar" element={<ProfesionalAsignar />} />
-                <Route
-                  path="videollamadas"
-                  element={<ProfesionalVideollamadas />}
-                />
                 <Route path="perfil" element={<ProfesionalPerfil />} />
               </Route>
 

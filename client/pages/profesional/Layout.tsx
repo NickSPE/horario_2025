@@ -1,20 +1,19 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { 
-  LogOut, 
-  Menu, 
-  Home, 
-  Users, 
-  FileText, 
-  Pill, 
-  Clock, 
-  Video, 
-  User 
+import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
+import {
+  Clock,
+  FileText,
+  Home,
+  LogOut,
+  Menu,
+  Pill,
+  User,
+  Users
 } from "lucide-react";
 import { useState } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
 const link = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -31,7 +30,6 @@ const menuItems = [
   { to: "recetas", label: "Recetas", icon: FileText },
   { to: "medicamentos", label: "Medicamentos", icon: Pill },
   { to: "asignar", label: "Horarios", icon: Clock },
-  { to: "videollamadas", label: "Videollamadas", icon: Video },
   { to: "perfil", label: "Perfil", icon: User },
 ];
 
