@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import { Link, NavLink, Outlet } from "react-router-dom";
-// Importa tu hook de autenticación aquí
-// import { useAuth } from "@/hooks/useAuth";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -14,10 +13,13 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   );
 
 export default function MainLayout() {
-  // Descomenta y ajusta según tu implementación de autenticación
   const { isAuthenticated, user, signOut } = useAuth();
+  const navigate = useNavigate();
 
-  // Temporalmente para testing - reemplaza con tu lógica real
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login");
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
@@ -58,10 +60,16 @@ export default function MainLayout() {
           {/* Renderizado condicional basado en autenticación */}
           <div className="flex items-center gap-2">
             {isAuthenticated ? (
-              // Usuario autenticado - mostrar perfil y logout
-              <>
-                {null}
-              </>
+              // Usuario autenticado - Botón cerrar sesión SOLO en móvil
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSignOut}
+                className="md:hidden gap-1"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="text-xs">Salir</span>
+              </Button>
             ) : (
               // Usuario no autenticado - mostrar login y registro
               <>
@@ -81,74 +89,36 @@ export default function MainLayout() {
         <Outlet />
       </main>
 
-      <footer className="border-t bg-muted/30">
-        <div className="container py-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-6">
-            {/* Columna 1: Acerca de */}
-            <div>
-              <h3 className="font-semibold text-foreground mb-3">Horario Médico</h3>
-              <p className="text-sm text-muted-foreground">
-                Tu asistente personal para nunca olvidar tomar tus medicamentos.
-              </p>
-            </div>
-
-            {/* Columna 2: Producto */}
-            <div>
-              <h3 className="font-semibold text-foreground mb-3">Producto</h3>
-              <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-                <Link to="/funciones" className="hover:text-foreground transition-colors">
-                  Funciones
-                </Link>
-                <Link to="/como-funciona" className="hover:text-foreground transition-colors">
-                  Cómo funciona
-                </Link>
-              </div>
-            </div>
-
-            {/* Columna 3: Legal */}
-            <div>
-              <h3 className="font-semibold text-foreground mb-3">Legal</h3>
-              <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-                <Link to="/terminos" className="hover:text-foreground transition-colors">
-                  Términos y condiciones
-                </Link>
-                <Link to="/privacidad" className="hover:text-foreground transition-colors">
-                  Política de privacidad
-                </Link>
-              </div>
-            </div>
-
-            {/* Columna 4: Soporte */}
-            <div>
-              <h3 className="font-semibold text-foreground mb-3">Soporte</h3>
-              <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-                <Link to="/contacto" className="hover:text-foreground transition-colors">
-                  Contacto
-                </Link>
-                <a href="mailto:hola@horariomedico.com" className="hover:text-foreground transition-colors">
-                  hola@horariomedico.com
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Línea divisoria */}
-          <div className="border-t pt-6">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-              <p>
-                © {new Date().getFullYear()} Horario Médico. Todos los derechos reservados.
-              </p>
-              <div className="flex items-center gap-4">
-                <Link to="/terminos" className="hover:text-foreground transition-colors">
-                  Términos
-                </Link>
-                <Link to="/privacidad" className="hover:text-foreground transition-colors">
-                  Privacidad
-                </Link>
-                <Link to="/contacto" className="hover:text-foreground transition-colors">
-                  Contacto
-                </Link>
-              </div>
+      <footer className="border-t bg-muted/20">
+        <div className="container py-4 md:py-6">
+          {/* Links compactos - Una sola fila en desktop, apilados en móvil */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-6 text-xs text-muted-foreground">
+            {/* Copyright */}
+            <p className="text-center md:text-left">
+              © {new Date().getFullYear()} Horario Médico
+            </p>
+            
+            {/* Links de navegación */}
+            <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 md:gap-4">
+              <Link to="/funciones" className="hover:text-foreground transition-colors">
+                Funciones
+              </Link>
+              <span className="text-muted-foreground/40">•</span>
+              <Link to="/como-funciona" className="hover:text-foreground transition-colors">
+                Cómo funciona
+              </Link>
+              <span className="text-muted-foreground/40">•</span>
+              <Link to="/terminos" className="hover:text-foreground transition-colors">
+                Términos
+              </Link>
+              <span className="text-muted-foreground/40">•</span>
+              <Link to="/privacidad" className="hover:text-foreground transition-colors">
+                Privacidad
+              </Link>
+              <span className="text-muted-foreground/40">•</span>
+              <Link to="/contacto" className="hover:text-foreground transition-colors">
+                Contacto
+              </Link>
             </div>
           </div>
         </div>

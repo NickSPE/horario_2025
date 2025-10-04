@@ -160,7 +160,7 @@ export default function Index() {
           <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
             Únete a miles de pacientes que mejoraron su adherencia al tratamiento
           </p>
-          <div className="hidden md:flex justify-center gap-4">
+          <div className="flex justify-center gap-4">
             <Button asChild size="lg" className="text-base h-14 px-8">
               <Link to="/registro">Crear cuenta gratis</Link>
             </Button>
@@ -170,21 +170,6 @@ export default function Index() {
           </div>
         </div>
       </section>
-
-      {/* Barra de acciones fija para móviles */}
-      <div className="md:hidden fixed inset-x-0 bottom-0 z-50 bg-background/95 backdrop-blur border-t shadow-lg p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        <div className="container flex gap-3">
-          <Button asChild className="flex-1 h-12 text-base">
-            <Link to="/registro">Comenzar gratis</Link>
-          </Button>
-          <Button asChild variant="outline" className="flex-1 h-12 text-base">
-            <Link to="/login">Iniciar sesión</Link>
-          </Button>
-        </div>
-      </div>
-
-      {/* Espaciado para la barra fija en móviles */}
-      <div className="md:hidden h-20" />
     </div>
   );
 }
