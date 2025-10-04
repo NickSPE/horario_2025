@@ -31,40 +31,43 @@ export default function MainLayout() {
               Horario Médico
             </span>
           </Link>
-          <nav className="hidden md:flex items-center gap-1">
-            <NavLink to="/" className={navLinkClass} end>
-              Inicio
-            </NavLink>
-            <a
-              href="/#funciones"
-              className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent"
-            >
-              Funciones
-            </a>
-            <a
-              href="/#como-funciona"
-              className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent"
-            >
-              Cómo funciona
-            </a>
-          </nav>
+          {
+            isAuthenticated && user ? (
+              <span className="text-sm text-muted-foreground">
+                Hola, {user.email}!
+              </span>
+            ) : (
+
+              <nav className="hidden md:flex items-center gap-1">
+                <NavLink to="/" className={navLinkClass} end>
+                  Inicio
+                </NavLink>
+                <a
+                  href="/#funciones"
+                  className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent"
+                >
+                  Funciones
+                </a>
+                <a
+                  href="/#como-funciona"
+                  className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent"
+                >
+                  Cómo funciona
+                </a>
+              </nav>
+            )
+          }
 
           {/* Renderizado condicional basado en autenticación */}
           <div className="flex items-center gap-2">
             {isAuthenticated ? (
               // Usuario autenticado - mostrar perfil y logout
               <>
-                <Button asChild variant="ghost">
-                  <Link to="/dashboard">Dashboard</Link>
-                </Button>
-                <Button asChild variant="ghost">
-                  <Link to="/perfil">Mi Perfil</Link>
-                </Button>
                 <Button
                   variant="outline"
                   onClick={() => {
                     // logout(); // Implementa tu función de logout
-                    console.log("Cerrar sesión");
+                    signOut();
                   }}
                 >
                   Cerrar sesión
