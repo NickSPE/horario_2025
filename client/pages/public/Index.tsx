@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { Pill, Clock, Users, Bell, CheckCircle2, Shield } from "lucide-react";
 
+
 export default function Index() {
   return (
     <div className="bg-background min-h-screen">
