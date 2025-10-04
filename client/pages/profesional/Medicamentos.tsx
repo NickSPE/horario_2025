@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getSupabase } from "@/lib/supabase";
+import { ListMedicamentos } from "@/components/ui/listmedicamentos";
 import { useToast } from "@/hooks/use-toast";
+import { getSupabase } from "@/lib/supabase";
 import type { CategoriaMedicamento, Medicamento } from "@shared/medicamentos";
-import { Trash2, Edit2, Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function Medicamentos() {
   const { toast } = useToast();
@@ -377,73 +378,8 @@ export default function Medicamentos() {
       </div>
 
       {/* LISTA DE MEDICAMENTOS POR CATEGORÍA */}
-      <div className="grid gap-4">
-        <h2 className="text-xl font-semibold">
-          Medicamentos por Categoría ({meds.length} total)
-        </h2>
-        {categories.map((cat) => {
-          const catMeds = meds.filter((m) => m.categoria_id === cat.id);
-          if (catMeds.length === 0) return null;
+      <ListMedicamentos categories={categories} meds={meds} deleteMed={deleteMed} />
 
-          return (
-            <Card key={cat.id}>
-              <CardHeader>
-                <CardTitle className="text-lg">
-                  {cat.nombre} ({catMeds.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-2">
-                  {catMeds.map((med) => (
-                    <div
-                      key={med.id}
-                      className="flex items-start justify-between p-3 rounded-md border bg-accent/30"
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium">{med.nombre}</p>
-                        {med.descripcion && (
-                          <p className="text-sm text-muted-foreground">
-                            {med.descripcion}
-                          </p>
-                        )}
-                        {med.dosis_recomendada && (
-                          <p className="text-sm text-muted-foreground">
-                            <strong>Dosis:</strong> {med.dosis_recomendada}
-                          </p>
-                        )}
-                        {med.via_administracion && (
-                          <p className="text-sm text-muted-foreground">
-                            <strong>Vía:</strong> {med.via_administracion}
-                          </p>
-                        )}
-                        {med.indicaciones && (
-                          <p className="text-sm text-muted-foreground">
-                            <strong>Indicaciones:</strong> {med.indicaciones}
-                          </p>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteMed(med.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-        {meds.length === 0 && (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              No hay medicamentos registrados aún
-            </CardContent>
-          </Card>
-        )}
-      </div>
     </div>
   );
 }
