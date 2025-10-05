@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -30,7 +30,7 @@ export default function MainLayout() {
               HM
             </div>
             <span className="text-lg font-bold tracking-tight">
-              Horario Médico
+              Recordatorio Medico
             </span>
           </Link>
           {
@@ -97,7 +97,7 @@ export default function MainLayout() {
             <p className="text-center md:text-left">
               © {new Date().getFullYear()} Horario Médico
             </p>
-            
+
             {/* Links de navegación */}
             <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 md:gap-4">
               <Link to="/funciones" className="hover:text-foreground transition-colors">
