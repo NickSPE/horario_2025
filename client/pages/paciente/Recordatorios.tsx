@@ -1,29 +1,29 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { getSupabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/use-auth';
 import { useNotificacionRecordatorio } from '@/hooks/use-notificacion-recordatorio';
 import { useServiceWorker } from '@/hooks/use-service-worker';
+import { useToast } from '@/hooks/use-toast';
+import { getSupabase } from '@/lib/supabase';
 import type { MedicamentoConCategoria } from '@shared/medicamentos';
 import type { RecordatorioCompleto, TipoSonido } from '@shared/recordatorios';
-import { INTERVALOS_DISPONIBLES, SONIDOS_ALARMA, CONFIGURACION_ALARMA } from '@shared/recordatorios';
-import { Clock, Pill, Plus, Trash2, CheckCircle2, Timer, Bell, Play, Volume2, Wifi, WifiOff, Upload, ChevronDown, ChevronUp, Settings } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { CONFIGURACION_ALARMA, INTERVALOS_DISPONIBLES, SONIDOS_ALARMA } from '@shared/recordatorios';
+import { Bell, CheckCircle2, ChevronDown, ChevronUp, Clock, Pill, Play, Plus, Settings, Timer, Trash2, Volume2, Wifi } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 // Función para formatear el tiempo restante
-function formatearTiempo(segundos: number) {
+const formatearTiempo = (segundos: number) => {
   if (segundos <= 0) return '¡Es hora de tomar!';
-  
+
   const horas = Math.floor(segundos / 3600);
   const minutos = Math.floor((segundos % 3600) / 60);
   const segs = Math.floor(segundos % 60);
-  
+
   if (horas > 0) {
     return `${horas}h ${minutos}m ${segs}s`;
   } else if (minutos > 0) {
@@ -33,10 +33,37 @@ function formatearTiempo(segundos: number) {
   }
 }
 
+const agregarCalendar = ({
+  title,
+  description,
+  startDate,
+  endDate,
+}: {
+  title: string;
+  description?: string;
+  startDate: Date;
+  endDate: Date;
+}) => {
+  // Formato ISO sin guiones, dos puntos ni milisegundos
+  const start = startDate.toISOString().replace(/-|:|\.\d+/g, '');
+  const end = endDate.toISOString().replace(/-|:|\.\d+/g, '');
+
+  // Parámetros esperados por Google Calendar
+  const details = {
+    text: title,
+    details: description || '',
+    dates: `${start}/${end}`,
+  };
+
+  const queryString = new URLSearchParams(details).toString();
+  const url = `https://www.google.com/calendar/render?action=TEMPLATE&${queryString}`;
+  window.open(url, '_blank');
+};
+
 // Componente de tarjeta con temporizador
-function TemporizadorCard({ 
-  recordatorio, 
-  onMarcarTomado, 
+const TemporizadorCard = ({
+  recordatorio,
+  onMarcarTomado,
   onEliminar,
   onMarcarNoTomado,
   tipoSonido = 'beep',
@@ -48,7 +75,7 @@ function TemporizadorCard({
   onMarcarNoTomado: (id: string) => void;
   tipoSonido?: TipoSonido;
   audioUrl?: string;
-}) {
+}) => {
   const esAsignadoPorProfesional = !!recordatorio.creado_por_profesional_id;
   const estaInactivo = !recordatorio.activo;
   const [segundosRestantes, setSegundosRestantes] = useState(recordatorio.segundos_restantes);
@@ -63,7 +90,7 @@ function TemporizadorCard({
     setSegundosRestantes(recordatorio.segundos_restantes);
     setYaAlarmo(false); // Reset cuando cambia el recordatorio
     setSegundosDesdeAlarma(0); // Reset contador de auto-avance
-    
+
     // Si el recordatorio está activo pero segundosRestantes > 0, significa que recién se activó
     // Marcamos como recienActivado para evitar alarma inmediata
     // NOTA: Con el nuevo sistema, la primera activación queda en tomas_completadas = 0
@@ -77,7 +104,7 @@ function TemporizadorCard({
   // Temporizador que cuenta cada segundo (solo si está activo)
   useEffect(() => {
     if (estaInactivo) return; // No contar si está inactivo
-    
+
     const interval = setInterval(() => {
       setSegundosRestantes(prev => {
         if (prev <= 0) return 0;
@@ -91,7 +118,7 @@ function TemporizadorCard({
   // Contador de tiempo desde que sonó la alarma (para auto-avance)
   useEffect(() => {
     if (!debeTomar || !yaAlarmo || estaInactivo) return;
-    
+
     const interval = setInterval(() => {
       setSegundosDesdeAlarma(prev => prev + 1);
     }, 1000);
@@ -112,13 +139,13 @@ function TemporizadorCard({
   useEffect(() => {
     if (estaInactivo) return; // No alarmar si está inactivo
     if (recienActivado) return; // No alarmar si recién se activó (primera toma)
-    
+
     // La alarma debe sonar desde la SEGUNDA toma en adelante
     // Si tomas_completadas = 0, está esperando primera toma (no suena)
     // Si tomas_completadas >= 1, ya tomó la primera, ahora debe sonar
     // PERO solo si debeTomar es true (segundosRestantes <= 0)
     if (recordatorio.tomas_completadas < 1) return;
-    
+
     // IMPORTANTE: debeTomar significa que segundosRestantes <= 0
     // Esto evita que suene inmediatamente después de tomar la primera dosis
     // porque segundosRestantes será > 0 (el intervalo completo)
@@ -130,7 +157,7 @@ function TemporizadorCard({
   }, [debeTomar, yaAlarmo, recordatorio.tomas_completadas, recordatorio.medicamento_nombre, recordatorio.dosis_a_tomar, alarmaCompleta, estaInactivo, recienActivado, tipoSonido, audioUrl]);
 
   // Calcular porcentaje de progreso
-  const porcentajeTranscurrido = Math.max(0, Math.min(100, 
+  const porcentajeTranscurrido = Math.max(0, Math.min(100,
     ((recordatorio.intervalo_horas * 3600 - segundosRestantes) / (recordatorio.intervalo_horas * 3600)) * 100
   ));
 
@@ -183,8 +210,8 @@ function TemporizadorCard({
               {recordatorio.dosis_a_tomar}
             </Badge>
             <span className="text-muted-foreground">
-              {recordatorio.intervalo_horas < 1 
-                ? 'cada 10 segundos (PRUEBA)' 
+              {recordatorio.intervalo_horas < 1
+                ? 'cada 10 segundos (PRUEBA)'
                 : `cada ${recordatorio.intervalo_horas}h (${Math.round(24 / recordatorio.intervalo_horas)} veces/día)`
               }
             </span>
@@ -222,7 +249,7 @@ function TemporizadorCard({
             </p>
           )}
 
-          <Button 
+          <Button
             onClick={() => onMarcarTomado(recordatorio.id)}
             className="w-full gap-2 text-base min-h-[52px] bg-yellow-600 hover:bg-yellow-700"
             size="lg"
@@ -280,8 +307,8 @@ function TemporizadorCard({
             {recordatorio.dosis_a_tomar}
           </Badge>
           <span className="text-muted-foreground">
-            {recordatorio.intervalo_horas < 1 
-              ? 'cada 10 segundos (PRUEBA)' 
+            {recordatorio.intervalo_horas < 1
+              ? 'cada 10 segundos (PRUEBA)'
               : `cada ${recordatorio.intervalo_horas}h (${Math.round(24 / recordatorio.intervalo_horas)} veces/día)`
             }
           </span>
@@ -297,7 +324,7 @@ function TemporizadorCard({
               </span>
             </div>
             <div className="mt-2 h-2 bg-blue-200 rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-blue-600 transition-all duration-500"
                 style={{ width: `${(recordatorio.tomas_completadas / recordatorio.tomas_totales) * 100}%` }}
               />
@@ -322,7 +349,7 @@ function TemporizadorCard({
           </div>
 
           <div className="h-3 bg-secondary rounded-full overflow-hidden">
-            <div 
+            <div
               className={`h-full transition-all duration-1000 ${debeTomar ? 'bg-destructive' : 'bg-primary'}`}
               style={{ width: `${porcentajeTranscurrido}%` }}
             />
@@ -342,12 +369,12 @@ function TemporizadorCard({
                 <Timer className="h-4 w-4 text-orange-600" />
                 <AlertDescription className="text-orange-800">
                   <strong>⚠️ Advertencia:</strong> Si no marcas como tomado en{' '}
-                  <strong>{formatearTiempo(300 - segundosDesdeAlarma)}</strong>, 
+                  <strong>{formatearTiempo(300 - segundosDesdeAlarma)}</strong>,
                   se marcará automáticamente como NO TOMADO y avanzará a la siguiente toma.
                 </AlertDescription>
               </Alert>
             )}
-            <Button 
+            <Button
               onClick={() => {
                 detenerAlarma();
                 onMarcarTomado(recordatorio.id);
@@ -572,7 +599,7 @@ export default function Recordatorios() {
     }
 
     // Filtrar: mostrar solo activos o inactivos que esperan primera toma
-    const recordatoriosFiltrados = (data || []).filter(r => 
+    const recordatoriosFiltrados = (data || []).filter(r =>
       r.activo || (!r.activo && r.tomas_completadas === 0)
     );
 
@@ -592,7 +619,7 @@ export default function Recordatorios() {
 
     const intervaloNum = parseFloat(intervalo);
     const ahora = new Date();
-    
+
     // Calcular próxima toma en milisegundos
     const milisegundos = intervaloNum * 60 * 60 * 1000;
     const proximaToma = new Date(ahora.getTime() + milisegundos);
@@ -645,14 +672,14 @@ export default function Recordatorios() {
       );
     }
 
-    const intervaloTexto = intervaloNum < 1 
-      ? '10 segundos' 
+    const intervaloTexto = intervaloNum < 1
+      ? '10 segundos'
       : `${intervaloNum} horas`;
 
     toast({
       title: 'Recordatorio creado',
-      description: serviceWorkerRegistered 
-        ? `Recibirás alertas cada ${intervaloTexto} INCLUSO con navegador cerrado` 
+      description: serviceWorkerRegistered
+        ? `Recibirás alertas cada ${intervaloTexto} INCLUSO con navegador cerrado`
         : `Te avisaremos cada ${intervaloTexto}. Tomarás ${vecesAlDia} veces al día`
     });
 
@@ -671,25 +698,25 @@ export default function Recordatorios() {
 
     const ahora = new Date();
     const esPrimeraToma = !recordatorio.activo && recordatorio.tomas_completadas === 0;
-    
+
     // IMPORTANTE: Para la primera toma, ya tomó la pastilla AHORA
     // La próxima toma debe ser después del intervalo completo
     // Ejemplo: Si toma cada 8h, próxima toma es en 8h (no debe sonar ahora)
     const proximaToma = new Date(ahora.getTime() + recordatorio.intervalo_horas * 60 * 60 * 1000);
-    
+
     // CLAVE: En la primera activación NO incrementar contador (queda en 0)
     // Esto evita que suene la alarma (solo suena cuando tomas_completadas >= 1)
     // En las siguientes tomas SÍ incrementa normalmente
     const nuevasTomasCompletadas = esPrimeraToma ? 0 : recordatorio.tomas_completadas + 1;
-    
+
     // Verificar si ya completó todas las tomas
-    const terminoTratamiento = recordatorio.tomas_totales 
+    const terminoTratamiento = recordatorio.tomas_totales
       ? nuevasTomasCompletadas >= recordatorio.tomas_totales
       : false;
 
     // Guardar en historial (usar ahora como hora_programada si es primera toma)
     const horaProgramada = esPrimeraToma ? ahora.toISOString() : (recordatorio.proxima_toma || ahora.toISOString());
-    
+
     const { error: errorHistorial } = await supabase
       .from('historial_tomas')
       .insert({
@@ -716,12 +743,12 @@ export default function Recordatorios() {
       tomas_completadas: nuevasTomasCompletadas,
       activo: esPrimeraToma ? true : !terminoTratamiento // Activar en primera toma, desactivar si terminó
     };
-    
+
     // Solo establecer inicio_tratamiento en la primera toma
     if (esPrimeraToma) {
       updateData.inicio_tratamiento = ahora.toISOString();
     }
-    
+
     const { error: errorUpdate } = await supabase
       .from('recordatorios_medicamentos')
       .update(updateData)
@@ -753,9 +780,9 @@ export default function Recordatorios() {
         }
         return r;
       });
-      
+
       // Filtrar: mantener solo activos o inactivos que NO han sido activados
-      return updated.filter(r => 
+      return updated.filter(r =>
         r.activo || (!r.activo && r.tomas_completadas === 0)
       );
     });
@@ -773,10 +800,10 @@ export default function Recordatorios() {
         duration: 5000
       });
     } else {
-      const tomasRestantes = recordatorio.tomas_totales 
+      const tomasRestantes = recordatorio.tomas_totales
         ? recordatorio.tomas_totales - nuevasTomasCompletadas
         : null;
-      
+
       toast({
         title: '✅ Toma registrada',
         description: tomasRestantes !== null
@@ -786,7 +813,7 @@ export default function Recordatorios() {
     }
 
     cargarRecordatorios();
-    
+
     // Forzar una segunda recarga después de 500ms para asegurar que la UI se actualice
     // Esto soluciona problemas de cache en la vista de Supabase
     setTimeout(() => {
@@ -841,7 +868,7 @@ export default function Recordatorios() {
 
   async function eliminarRecordatorio(id: string) {
     const recordatorio = recordatorios.find(r => r.id === id);
-    
+
     // Si el recordatorio está activo, pedir confirmación
     if (recordatorio?.activo) {
       const confirmar = window.confirm(
@@ -853,7 +880,7 @@ export default function Recordatorios() {
     // Si está INACTIVO (esperando primera toma), ELIMINAR físicamente
     // Si está ACTIVO, solo desactivar
     const esInactivo = !recordatorio?.activo;
-    
+
     const { error } = esInactivo
       ? await supabase.from('recordatorios_medicamentos').delete().eq('id', id)
       : await supabase.from('recordatorios_medicamentos').update({ activo: false }).eq('id', id);
@@ -872,7 +899,7 @@ export default function Recordatorios() {
 
     toast({
       title: 'Recordatorio eliminado',
-      description: esInactivo 
+      description: esInactivo
         ? 'El recordatorio ha sido eliminado completamente'
         : 'Ya no recibirás notificaciones'
     });
@@ -881,7 +908,7 @@ export default function Recordatorios() {
     setTimeout(() => cargarRecordatorios(), 500);
   }
 
-  const medicamentoInfo = medicamentoSeleccionado 
+  const medicamentoInfo = medicamentoSeleccionado
     ? medicamentos.find(m => m.id === medicamentoSeleccionado)
     : null;
 
@@ -900,7 +927,7 @@ export default function Recordatorios() {
         </div>
         <div className="flex gap-2">
           {!permisoNotificaciones && (
-            <Button 
+            <Button
               onClick={activarNotificaciones}
               variant="outline"
               size="lg"
@@ -910,7 +937,7 @@ export default function Recordatorios() {
               Activar Alertas
             </Button>
           )}
-          <Button 
+          <Button
             onClick={() => setMostrarFormulario(!mostrarFormulario)}
             size="lg"
             className="gap-2 min-h-[52px]"
@@ -918,6 +945,7 @@ export default function Recordatorios() {
             <Plus className="h-6 w-6" />
             Nuevo
           </Button>
+
         </div>
       </div>
 
@@ -943,7 +971,7 @@ export default function Recordatorios() {
               </CardDescription>
             </CardHeader>
           </CollapsibleTrigger>
-          
+
           <CollapsibleContent>
             <CardContent className="space-y-4 pt-0">
               {/* Alerta de notificaciones */}
@@ -980,7 +1008,7 @@ export default function Recordatorios() {
                     Elige el sonido que escucharás cuando sea hora de tomar tu medicamento
                   </p>
                 </div>
-                
+
                 <div className="flex gap-3 items-end">
                   <div className="flex-1">
                     <Select
@@ -1019,7 +1047,7 @@ export default function Recordatorios() {
                 <Alert>
                   <Timer className="h-4 w-4" />
                   <AlertDescription className="text-sm">
-                    <strong>📢 Duración:</strong> La alarma sonará durante <strong>{CONFIGURACION_ALARMA.DURACION_ALARMA_SEGUNDOS} segundos</strong> 
+                    <strong>📢 Duración:</strong> La alarma sonará durante <strong>{CONFIGURACION_ALARMA.DURACION_ALARMA_SEGUNDOS} segundos</strong>
                     {' '}y se repetirá cada 3 segundos hasta que marques como tomado.
                   </AlertDescription>
                 </Alert>
@@ -1030,179 +1058,185 @@ export default function Recordatorios() {
       </Collapsible>
 
       {/* Estado del Service Worker */}
-      {serviceWorkerRegistered && (
-        <Alert className="border-green-200 bg-green-50">
-          <Wifi className="h-5 w-5 text-green-600" />
-          <AlertDescription className="text-base text-green-800">
-            <strong>✓ Modo offline activado:</strong> Recibirás notificaciones aunque cierres el navegador
-          </AlertDescription>
-        </Alert>
-      )}
+      {
+        serviceWorkerRegistered && (
+          <Alert className="border-green-200 bg-green-50">
+            <Wifi className="h-5 w-5 text-green-600" />
+            <AlertDescription className="text-base text-green-800">
+              <strong>✓ Modo offline activado:</strong> Recibirás notificaciones aunque cierres el navegador
+            </AlertDescription>
+          </Alert>
+        )
+      }
 
-      {mostrarFormulario && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Bell className="h-6 w-6" />
-              Crear Recordatorio
-            </CardTitle>
-            <CardDescription className="text-base">
-              Selecciona un medicamento y presiona "Empezar ahora"
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={agregarRecordatorio} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-base font-medium">Medicamento</label>
-                <Select value={medicamentoSeleccionado} onValueChange={setMedicamentoSeleccionado}>
-                  <SelectTrigger className="text-base min-h-[52px]">
-                    <SelectValue placeholder="Selecciona un medicamento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {medicamentos.map(med => (
-                      <SelectItem key={med.id} value={med.id} className="text-base py-3">
-                        {med.nombre} - {med.categoria_nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {medicamentoInfo && (
-                <Alert>
-                  <Pill className="h-5 w-5" />
-                  <AlertDescription className="text-base space-y-1">
-                    <div><strong>Dosis:</strong> {medicamentoInfo.dosis_recomendada || 'No especificada'}</div>
-                    <div><strong>Vía:</strong> {medicamentoInfo.via_administracion || 'No especificada'}</div>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-base font-medium">¿Cada cuánto tiempo?</label>
-                <Select value={intervalo} onValueChange={setIntervalo}>
-                  <SelectTrigger className="text-base min-h-[52px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INTERVALOS_DISPONIBLES.map(int => {
-                      const vecesAlDia = Math.round(24 / int.value);
-                      return (
-                        <SelectItem 
-                          key={int.value} 
-                          value={int.value.toString()} 
-                          className={`text-base py-3 ${int.esPrueba ? 'bg-yellow-50 border-l-4 border-yellow-500' : ''}`}
-                        >
-                          <div>
-                            <div className="font-medium">{int.label}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {int.esPrueba ? int.ejemplo : `${vecesAlDia} ${vecesAlDia === 1 ? 'vez' : 'veces'} al día`}
-                            </div>
-                          </div>
+      {
+        mostrarFormulario && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Bell className="h-6 w-6" />
+                Crear Recordatorio
+              </CardTitle>
+              <CardDescription className="text-base">
+                Selecciona un medicamento y presiona "Empezar ahora"
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={agregarRecordatorio} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-base font-medium">Medicamento</label>
+                  <Select value={medicamentoSeleccionado} onValueChange={setMedicamentoSeleccionado}>
+                    <SelectTrigger className="text-base min-h-[52px]">
+                      <SelectValue placeholder="Selecciona un medicamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {medicamentos.map(med => (
+                        <SelectItem key={med.id} value={med.id} className="text-base py-3">
+                          {med.nombre} - {med.categoria_nombre}
                         </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-base font-medium">Dosis personalizada (opcional)</label>
-                <input
-                  type="text"
-                  value={dosisPersonalizada}
-                  onChange={(e) => setDosisPersonalizada(e.target.value)}
-                  placeholder="Ej: 2 tabletas, 5ml, etc."
-                  className="w-full px-4 py-3 text-base border rounded-md min-h-[52px]"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-base font-medium">¿Cuántas pastillas/ampollas tienes? (opcional)</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={tomasTotales}
-                  onChange={(e) => setTomasTotales(e.target.value)}
-                  placeholder="Ej: 20 pastillas, 10 ampollas"
-                  className="w-full px-4 py-3 text-base border rounded-md min-h-[52px]"
-                />
-                <p className="text-sm text-muted-foreground">
-                  El recordatorio se desactivará automáticamente cuando termines todas las tomas
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-base font-medium">Notas (opcional)</label>
-                <Textarea
-                  value={notas}
-                  onChange={(e) => setNotas(e.target.value)}
-                  placeholder="Ej: Tomar con alimentos"
-                  className="text-base min-h-[80px]"
-                />
-              </div>
-
-              <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-                {parseFloat(intervalo) < 1 ? (
-                  <div className="bg-yellow-100 border border-yellow-300 rounded p-3 mb-3">
-                    <p className="text-sm font-bold text-yellow-800 text-center">
-                      ⚠️ MODO DE PRUEBA: El temporizador será de 10 segundos
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-base text-center mb-3">
-                    Tomarás <strong>{Math.round(24 / parseFloat(intervalo))} {Math.round(24 / parseFloat(intervalo)) === 1 ? 'vez' : 'veces'} al día</strong>
-                    <br />
-                    El temporizador <strong>empezará ahora</strong> y te avisará cada <strong>{intervalo} horas</strong>
-                  </p>
-                )}
-                <div className="flex gap-3">
-                  <Button type="submit" size="lg" className="flex-1 min-h-[52px] text-base gap-2">
-                    <Play className="h-6 w-6" />
-                    Empezar Ahora
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="lg"
-                    onClick={() => setMostrarFormulario(false)}
-                    className="min-h-[52px]"
-                  >
-                    Cancelar
-                  </Button>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
 
-      {recordatorios.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Clock className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-            <p className="text-lg text-muted-foreground">
-              No tienes recordatorios activos
-            </p>
-            <p className="text-base text-muted-foreground mt-2">
-              Crea uno para no olvidar tomar tus medicamentos
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {recordatorios.map(recordatorio => (
-            <TemporizadorCard
-              key={recordatorio.id}
-              recordatorio={recordatorio}
-              onMarcarTomado={marcarComoTomado}
-              onEliminar={eliminarRecordatorio}
-              onMarcarNoTomado={marcarComoNoTomado}
-              tipoSonido={tipoSonidoSeleccionado}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+                {medicamentoInfo && (
+                  <Alert>
+                    <Pill className="h-5 w-5" />
+                    <AlertDescription className="text-base space-y-1">
+                      <div><strong>Dosis:</strong> {medicamentoInfo.dosis_recomendada || 'No especificada'}</div>
+                      <div><strong>Vía:</strong> {medicamentoInfo.via_administracion || 'No especificada'}</div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-base font-medium">¿Cada cuánto tiempo?</label>
+                  <Select value={intervalo} onValueChange={setIntervalo}>
+                    <SelectTrigger className="text-base min-h-[52px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INTERVALOS_DISPONIBLES.map(int => {
+                        const vecesAlDia = Math.round(24 / int.value);
+                        return (
+                          <SelectItem
+                            key={int.value}
+                            value={int.value.toString()}
+                            className={`text-base py-3 ${int.esPrueba ? 'bg-yellow-50 border-l-4 border-yellow-500' : ''}`}
+                          >
+                            <div>
+                              <div className="font-medium">{int.label}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {int.esPrueba ? int.ejemplo : `${vecesAlDia} ${vecesAlDia === 1 ? 'vez' : 'veces'} al día`}
+                              </div>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-base font-medium">Dosis personalizada (opcional)</label>
+                  <input
+                    type="text"
+                    value={dosisPersonalizada}
+                    onChange={(e) => setDosisPersonalizada(e.target.value)}
+                    placeholder="Ej: 2 tabletas, 5ml, etc."
+                    className="w-full px-4 py-3 text-base border rounded-md min-h-[52px]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-base font-medium">¿Cuántas pastillas/ampollas tienes? (opcional)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={tomasTotales}
+                    onChange={(e) => setTomasTotales(e.target.value)}
+                    placeholder="Ej: 20 pastillas, 10 ampollas"
+                    className="w-full px-4 py-3 text-base border rounded-md min-h-[52px]"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    El recordatorio se desactivará automáticamente cuando termines todas las tomas
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-base font-medium">Notas (opcional)</label>
+                  <Textarea
+                    value={notas}
+                    onChange={(e) => setNotas(e.target.value)}
+                    placeholder="Ej: Tomar con alimentos"
+                    className="text-base min-h-[80px]"
+                  />
+                </div>
+
+                <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+                  {parseFloat(intervalo) < 1 ? (
+                    <div className="bg-yellow-100 border border-yellow-300 rounded p-3 mb-3">
+                      <p className="text-sm font-bold text-yellow-800 text-center">
+                        ⚠️ MODO DE PRUEBA: El temporizador será de 10 segundos
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-base text-center mb-3">
+                      Tomarás <strong>{Math.round(24 / parseFloat(intervalo))} {Math.round(24 / parseFloat(intervalo)) === 1 ? 'vez' : 'veces'} al día</strong>
+                      <br />
+                      El temporizador <strong>empezará ahora</strong> y te avisará cada <strong>{intervalo} horas</strong>
+                    </p>
+                  )}
+                  <div className="flex gap-3">
+                    <Button type="submit" size="lg" className="flex-1 min-h-[52px] text-base gap-2">
+                      <Play className="h-6 w-6" />
+                      Empezar Ahora
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="lg"
+                      onClick={() => setMostrarFormulario(false)}
+                      className="min-h-[52px]"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )
+      }
+
+      {
+        recordatorios.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Clock className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+              <p className="text-lg text-muted-foreground">
+                No tienes recordatorios activos
+              </p>
+              <p className="text-base text-muted-foreground mt-2">
+                Crea uno para no olvidar tomar tus medicamentos
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4">
+            {recordatorios.map(recordatorio => (
+              <TemporizadorCard
+                key={recordatorio.id}
+                recordatorio={recordatorio}
+                onMarcarTomado={marcarComoTomado}
+                onEliminar={eliminarRecordatorio}
+                onMarcarNoTomado={marcarComoNoTomado}
+                tipoSonido={tipoSonidoSeleccionado}
+              />
+            ))}
+          </div>
+        )
+      }
+    </div >
   );
 }

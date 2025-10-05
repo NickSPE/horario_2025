@@ -12,6 +12,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
       : "text-muted-foreground hover:text-foreground hover:bg-accent",
   );
 
+
 export default function MainLayout() {
   const { isAuthenticated, user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -20,6 +21,9 @@ export default function MainLayout() {
     await signOut();
     navigate("/login");
   };
+  const title = "Recordatorio Médico";
+
+
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
@@ -27,10 +31,12 @@ export default function MainLayout() {
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-md bg-primary/90 text-primary-foreground grid place-items-center font-bold">
-              HM
+              <span>
+                <img src="/favicon.ico" alt="Logo de Recordatorio Médico" />
+              </span>
             </div>
             <span className="text-lg font-bold tracking-tight">
-              Recordatorio Medico
+              {title}
             </span>
           </Link>
           {
@@ -89,40 +95,50 @@ export default function MainLayout() {
         <Outlet />
       </main>
 
-      <footer className="border-t bg-muted/20">
-        <div className="container py-4 md:py-6">
-          {/* Links compactos - Una sola fila en desktop, apilados en móvil */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-6 text-xs text-muted-foreground">
-            {/* Copyright */}
-            <p className="text-center md:text-left">
-              © {new Date().getFullYear()} Horario Médico
-            </p>
+      {isAuthenticated ? null : (
 
-            {/* Links de navegación */}
-            <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 md:gap-4">
-              <Link to="/funciones" className="hover:text-foreground transition-colors">
-                Funciones
-              </Link>
-              <span className="text-muted-foreground/40">•</span>
-              <Link to="/como-funciona" className="hover:text-foreground transition-colors">
-                Cómo funciona
-              </Link>
-              <span className="text-muted-foreground/40">•</span>
-              <Link to="/terminos" className="hover:text-foreground transition-colors">
-                Términos
-              </Link>
-              <span className="text-muted-foreground/40">•</span>
-              <Link to="/privacidad" className="hover:text-foreground transition-colors">
-                Privacidad
-              </Link>
-              <span className="text-muted-foreground/40">•</span>
-              <Link to="/contacto" className="hover:text-foreground transition-colors">
-                Contacto
-              </Link>
+
+        < footer className="border-t bg-muted/20">
+          <div className="container py-4 md:py-6">
+
+
+            < div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-6 text-xs text-muted-foreground">
+              {/* Copyright */}
+              <p className="text-center md:text-left">
+                © {new Date().getFullYear()} {title}
+              </p>
+
+
+              {/* Links de navegación */}
+              <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 md:gap-4">
+                <Link to="/funciones" className="hover:text-foreground transition-colors">
+                  Funciones
+                </Link>
+                <span className="text-muted-foreground/40">•</span>
+                <Link to="/como-funciona" className="hover:text-foreground transition-colors">
+                  Cómo funciona
+                </Link>
+                <span className="text-muted-foreground/40">•</span>
+                <Link to="/terminos" className="hover:text-foreground transition-colors">
+                  Términos
+                </Link>
+                <span className="text-muted-foreground/40">•</span>
+                <Link to="/privacidad" className="hover:text-foreground transition-colors">
+                  Privacidad
+                </Link>
+                <span className="text-muted-foreground/40">•</span>
+                <Link to="/contacto" className="hover:text-foreground transition-colors">
+                  Contacto
+
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
-      </footer>
-    </div>
+        </footer>
+      )
+      }
+
+
+    </div >
   );
 }

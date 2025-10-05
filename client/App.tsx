@@ -6,20 +6,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
-import Index from "@/pages/sistema/Index";
-import Login from "@/pages/sistema/Login";
-import Register from "@/pages/sistema/Register";
-import Funciones from "@/pages/sistema/Funciones";
-import ComoFunciona from "@/pages/sistema/ComoFunciona";
-import Terminos from "@/pages/sistema/Terminos";
-import Privacidad from "@/pages/sistema/Privacidad";
-import Contacto from "@/pages/sistema/Contacto";
-import NotFound from "@/pages/sistema/NotFound";
 import PacienteCitas from "@/pages/paciente/Citas";
 import PacienteInicio from "@/pages/paciente/Inicio";
 import PacienteLayout from "@/pages/paciente/Layout";
 import PacienteMedicamentos from "@/pages/paciente/Medicamentos";
-import PacienteMensajes from "@/pages/paciente/Mensajes";
 import PacientePerfil from "@/pages/paciente/Perfil";
 import PacienteRecetas from "@/pages/paciente/Recetas";
 import Recordatorios from "@/pages/paciente/Recordatorios";
@@ -29,6 +19,15 @@ import ProfesionalLayout from "@/pages/profesional/Layout";
 import Medicamentos from "@/pages/profesional/Medicamentos";
 import ProfesionalPerfil from "@/pages/profesional/Perfil";
 import ProfesionalRecetas from "@/pages/profesional/Recetas";
+import ComoFunciona from "@/pages/sistema/ComoFunciona";
+import Contacto from "@/pages/sistema/Contacto";
+import Funciones from "@/pages/sistema/Funciones";
+import Index from "@/pages/sistema/Index";
+import Login from "@/pages/sistema/Login";
+import NotFound from "@/pages/sistema/NotFound";
+import Privacidad from "@/pages/sistema/Privacidad";
+import Register from "@/pages/sistema/Register";
+import Terminos from "@/pages/sistema/Terminos";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
@@ -81,7 +80,6 @@ const App = () => (
                 <Route path="medicamentos" element={<PacienteMedicamentos />} />
                 <Route path="recordatorios" element={<Recordatorios />} />
                 <Route path="citas" element={<PacienteCitas />} />
-                <Route path="mensajes" element={<PacienteMensajes />} />
                 <Route path="perfil" element={<PacientePerfil />} />
               </Route>
 

@@ -1,17 +1,16 @@
-import { Outlet, useNavigate, NavLink } from 'react-router-dom';
-import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
-import { 
-  LogOut, 
-  Home, 
-  FileText, 
-  Pill, 
-  Bell, 
-  Calendar, 
-  MessageSquare, 
-  User 
+import {
+  Bell,
+  Calendar,
+  FileText,
+  Home,
+  LogOut,
+  Pill,
+  User
 } from 'lucide-react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 const link = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -28,7 +27,6 @@ const menuItems = [
   { to: "medicamentos", label: "Medicamentos", icon: Pill },
   { to: "recordatorios", label: "Recordatorios", icon: Bell },
   { to: "citas", label: "Citas", icon: Calendar },
-  { to: "mensajes", label: "Mensajes", icon: MessageSquare },
   { to: "perfil", label: "Perfil", icon: User },
 ];
 

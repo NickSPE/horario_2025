@@ -15,6 +15,7 @@ import { INTERVALOS_DISPONIBLES } from '@shared/recordatorios';
 import { CheckCircle2, Clock, Pill, Plus, Search, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+
 export default function AsignarRecordatorios() {
   const { user } = useAuth();
   const { toast } = useToast();

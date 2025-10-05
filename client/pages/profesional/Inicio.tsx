@@ -1,8 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 import { getSupabase } from "@/lib/supabase";
-import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface Row {
   id: number;
@@ -43,7 +44,7 @@ export default function ProfesionalInicio() {
   const navigate = useNavigate();
   const [pacientesConRecetas, setPacientesConRecetas] = useState<PacienteReceta[]>([]);
   const [loading, setLoading] = useState(false);
-
+  const { user, isAuthenticated } = useAuth();
   // Función para obtener pacientes con recetas del profesional actual
   const obtenerPacientesConRecetas = async () => {
     setLoading(true);
@@ -62,6 +63,7 @@ export default function ProfesionalInicio() {
           estado_recordatorio,
           porcentaje_adherencia
         `)
+        .eq('profesional_id', user?.id)
         .not('recordatorio_id', 'is', null); // Solo pacientes que tienen recordatorios
 
       if (error) {
@@ -90,8 +92,7 @@ export default function ProfesionalInicio() {
           Panel de Control del Doctor
         </h1>
         <p className="text-muted-foreground">
-          Bienvenida, Dra. Ramírez. Aquí puede gestionar sus recetas y
-          videollamadas.
+          Bienvenida, {user?.user_metadata.nombre} {user?.user_metadata.apellido}. Aquí puede gestionar sus recetaas y ver el progreso de sus pacientes.
         </p>
         <div className="mt-4 flex gap-3">
           <Button onClick={() => navigate('/dashboard/profesional/asignar')}>Nueva Receta</Button>
@@ -110,72 +111,74 @@ export default function ProfesionalInicio() {
         <div className="p-4 font-semibold">
           Mis Pacientes con Recetas ({pacientesConRecetas.length})
         </div>
-        {loading ? (
-          <div className="p-4 text-center text-muted-foreground">
-            Cargando pacientes...
-          </div>
-        ) : pacientesConRecetas.length === 0 ? (
-          <div className="p-4 text-center text-muted-foreground">
-            No tienes pacientes con recetas asignadas aún.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-accent/50 text-muted-foreground">
-                <tr>
-                  <th className="text-left p-3">Paciente</th>
-                  <th className="text-left p-3">Email</th>
-                  <th className="text-left p-3">Medicamento</th>
-                  <th className="text-left p-3">Dosis</th>
-                  <th className="text-left p-3">Inicio</th>
-                  <th className="text-left p-3">Estado</th>
-                  <th className="text-left p-3">Adherencia</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pacientesConRecetas.map((paciente) => (
-                  <tr key={`${paciente.paciente_id}-${paciente.recordatorio_id}`} className="border-t">
-                    <td className="p-3 font-medium">
-                      {paciente.paciente_nombre} {paciente.paciente_apellido}
-                    </td>
-                    <td className="p-3 text-muted-foreground">{paciente.paciente_email}</td>
-                    <td className="p-3">{paciente.medicamento_nombre}</td>
-                    <td className="p-3">{paciente.dosis_a_tomar}</td>
-                    <td className="p-3">
-                      {new Date(paciente.inicio_tratamiento).toLocaleDateString('es-ES')}
-                    </td>
-                    <td className="p-3">
-                      <Badge
-                        variant={
-                          paciente.estado_recordatorio === "al_dia"
-                            ? "default"
-                            : paciente.estado_recordatorio === "atrasado"
-                              ? "destructive"
-                              : paciente.estado_recordatorio === "completado"
-                                ? "secondary"
-                                : "outline"
-                        }
-                      >
-                        {paciente.estado_recordatorio === "al_dia" && "Al día"}
-                        {paciente.estado_recordatorio === "atrasado" && "Atrasado"}
-                        {paciente.estado_recordatorio === "completado" && "Completado"}
-                        {paciente.estado_recordatorio === "sin_iniciar" && "Sin iniciar"}
-                      </Badge>
-                    </td>
-                    <td className="p-3">
-                      {paciente.porcentaje_adherencia !== null
-                        ? `${paciente.porcentaje_adherencia}%`
-                        : "N/A"
-                      }
-                    </td>
+
+        {
+          loading ? (
+            <div className="p-4 text-center text-muted-foreground" >
+              Cargando pacientes...
+            </div>
+          ) : pacientesConRecetas.length === 0 ? (
+            <div className="p-4 text-center text-muted-foreground">
+              No tienes pacientes con recetas asignadas aún.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-accent/50 text-muted-foreground">
+                  <tr>
+                    <th className="text-left p-3">Paciente</th>
+                    <th className="text-left p-3">Email</th>
+                    <th className="text-left p-3">Medicamento</th>
+                    <th className="text-left p-3">Dosis</th>
+                    <th className="text-left p-3">Inicio</th>
+                    <th className="text-left p-3">Estado</th>
+                    <th className="text-left p-3">Adherencia</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {pacientesConRecetas.map((paciente) => (
+                    <tr key={`${paciente.paciente_id}-${paciente.recordatorio_id}`} className="border-t">
+                      <td className="p-3 font-medium">
+                        {paciente.paciente_nombre} {paciente.paciente_apellido}
+                      </td>
+                      <td className="p-3 text-muted-foreground">{paciente.paciente_email}</td>
+                      <td className="p-3">{paciente.medicamento_nombre}</td>
+                      <td className="p-3">{paciente.dosis_a_tomar}</td>
+                      <td className="p-3">
+                        {new Date(paciente.inicio_tratamiento).toLocaleDateString('es-ES')}
+                      </td>
+                      <td className="p-3">
+                        <Badge
+                          variant={
+                            paciente.estado_recordatorio === "al_dia"
+                              ? "default"
+                              : paciente.estado_recordatorio === "atrasado"
+                                ? "destructive"
+                                : paciente.estado_recordatorio === "completado"
+                                  ? "secondary"
+                                  : "outline"
+                          }
+                        >
+                          {paciente.estado_recordatorio === "al_dia" && "Al día"}
+                          {paciente.estado_recordatorio === "atrasado" && "Atrasado"}
+                          {paciente.estado_recordatorio === "completado" && "Completado"}
+                          {paciente.estado_recordatorio === "sin_iniciar" && "Sin iniciar"}
+                        </Badge>
+                      </td>
+                      <td className="p-3">
+                        {paciente.porcentaje_adherencia !== null
+                          ? `${paciente.porcentaje_adherencia}%`
+                          : "N/A"
+                        }
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
       </div>
-    </div>
+    </div >
 
   )
 
