@@ -14,6 +14,8 @@ export interface RecordatorioMedicamento {
   activo: boolean;
   notas?: string;
   creado_por_profesional_id?: string; // UUID del profesional que creó el recordatorio
+  audio_personalizado_url?: string; // URL del audio personalizado en Supabase Storage
+  tipo_sonido?: string; // Tipo de sonido predefinido o 'personalizado'
   created_at: string;
   updated_at: string;
 }
@@ -52,4 +54,24 @@ export const INTERVALOS_DISPONIBLES = [
   { value: 8, label: 'Cada 8 horas', ejemplo: '3 veces al día', esPrueba: false },
   { value: 12, label: 'Cada 12 horas', ejemplo: '2 veces al día', esPrueba: false },
   { value: 24, label: 'Cada 24 horas', ejemplo: '1 vez al día', esPrueba: false },
+  { value: -1, label: 'Personalizado', ejemplo: 'Define tu propio intervalo', esPrueba: false },
 ] as const;
+
+export const SONIDOS_ALARMA = [
+  { value: 'beep', label: '🔔 Beep clásico', descripcion: 'Tres tonos cortos' },
+  { value: 'suave', label: '🎵 Suave', descripcion: 'Tono melodioso y gentil' },
+  { value: 'urgente', label: '⚠️ Urgente', descripcion: 'Alarma insistente' },
+  { value: 'campana', label: '🔔 Campana', descripcion: 'Sonido de campana' },
+  { value: 'digital', label: '📱 Digital', descripcion: 'Bips electrónicos' },
+  // DESACTIVADO TEMPORALMENTE: Sonido personalizado
+  // { value: 'personalizado', label: '🎼 Personalizado', descripcion: 'Sube tu propio audio' },
+] as const;
+
+export type TipoSonido = typeof SONIDOS_ALARMA[number]['value'];
+
+// Configuración de alarmas
+export const CONFIGURACION_ALARMA = {
+  DURACION_ALARMA_SEGUNDOS: 30, // Alarma suena durante 30 segundos
+  TIEMPO_ESPERA_AUTO_AVANCE_MINUTOS: 5, // Después de 5 minutos sin marcar, avanza automáticamente
+  TIEMPO_ESPERA_AUTO_AVANCE_SEGUNDOS: 5 * 60, // 5 minutos en segundos
+} as const;

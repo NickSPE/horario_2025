@@ -5,14 +5,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { getSupabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/use-auth';
 import { useNotificacionRecordatorio } from '@/hooks/use-notificacion-recordatorio';
 import { useServiceWorker } from '@/hooks/use-service-worker';
 import type { MedicamentoConCategoria } from '@shared/medicamentos';
-import type { RecordatorioCompleto } from '@shared/recordatorios';
-import { INTERVALOS_DISPONIBLES } from '@shared/recordatorios';
-import { Clock, Pill, Plus, Trash2, CheckCircle2, Timer, Bell, Play, Volume2, Wifi, WifiOff } from 'lucide-react';
+import type { RecordatorioCompleto, TipoSonido } from '@shared/recordatorios';
+import { INTERVALOS_DISPONIBLES, SONIDOS_ALARMA, CONFIGURACION_ALARMA } from '@shared/recordatorios';
+import { Clock, Pill, Plus, Trash2, CheckCircle2, Timer, Bell, Play, Volume2, Wifi, WifiOff, Upload, ChevronDown, ChevronUp, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // Función para formatear el tiempo restante
@@ -36,26 +37,47 @@ function formatearTiempo(segundos: number) {
 function TemporizadorCard({ 
   recordatorio, 
   onMarcarTomado, 
-  onEliminar 
+  onEliminar,
+  onMarcarNoTomado,
+  tipoSonido = 'beep',
+  audioUrl
 }: {
   recordatorio: RecordatorioCompleto;
   onMarcarTomado: (id: string) => void;
   onEliminar: (id: string) => void;
+  onMarcarNoTomado: (id: string) => void;
+  tipoSonido?: TipoSonido;
+  audioUrl?: string;
 }) {
   const esAsignadoPorProfesional = !!recordatorio.creado_por_profesional_id;
+  const estaInactivo = !recordatorio.activo;
   const [segundosRestantes, setSegundosRestantes] = useState(recordatorio.segundos_restantes);
   const debeTomar = segundosRestantes <= 0;
   const [yaAlarmo, setYaAlarmo] = useState(false);
-  const { alarmaCompleta, reproducirAlarma } = useNotificacionRecordatorio();
+  const [segundosDesdeAlarma, setSegundosDesdeAlarma] = useState(0);
+  const [recienActivado, setRecienActivado] = useState(false); // Evitar alarma inmediata tras activar
+  const { alarmaCompleta, detenerAlarma } = useNotificacionRecordatorio();
 
   // Actualizar cuando cambie el recordatorio
   useEffect(() => {
     setSegundosRestantes(recordatorio.segundos_restantes);
     setYaAlarmo(false); // Reset cuando cambia el recordatorio
-  }, [recordatorio.segundos_restantes]);
+    setSegundosDesdeAlarma(0); // Reset contador de auto-avance
+    
+    // Si el recordatorio está activo pero segundosRestantes > 0, significa que recién se activó
+    // Marcamos como recienActivado para evitar alarma inmediata
+    // NOTA: Con el nuevo sistema, la primera activación queda en tomas_completadas = 0
+    if (recordatorio.activo && recordatorio.segundos_restantes > 0 && recordatorio.tomas_completadas === 0) {
+      setRecienActivado(true);
+      // Después de 2 segundos, permitir alarmas normales
+      setTimeout(() => setRecienActivado(false), 2000);
+    }
+  }, [recordatorio.segundos_restantes, recordatorio.activo, recordatorio.tomas_completadas]);
 
-  // Temporizador que cuenta cada segundo
+  // Temporizador que cuenta cada segundo (solo si está activo)
   useEffect(() => {
+    if (estaInactivo) return; // No contar si está inactivo
+    
     const interval = setInterval(() => {
       setSegundosRestantes(prev => {
         if (prev <= 0) return 0;
@@ -64,22 +86,156 @@ function TemporizadorCard({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [estaInactivo]);
 
-  // Activar alarma cuando llegue a 0
+  // Contador de tiempo desde que sonó la alarma (para auto-avance)
   useEffect(() => {
+    if (!debeTomar || !yaAlarmo || estaInactivo) return;
+    
+    const interval = setInterval(() => {
+      setSegundosDesdeAlarma(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [debeTomar, yaAlarmo, estaInactivo]);
+
+  // Auto-avance: Si pasan 5 minutos sin marcar como tomado, marcar como NO tomado
+  useEffect(() => {
+    if (segundosDesdeAlarma >= 300) { // 5 minutos = 300 segundos
+      console.log('Auto-avance: 5 minutos sin respuesta, marcando como NO tomado');
+      detenerAlarma(); // Detener la alarma
+      onMarcarNoTomado(recordatorio.id);
+    }
+  }, [segundosDesdeAlarma, recordatorio.id, onMarcarNoTomado, detenerAlarma]);
+
+  // Activar alarma cuando llegue a 0 (solo si está activo Y tiene al menos 1 toma completada)
+  useEffect(() => {
+    if (estaInactivo) return; // No alarmar si está inactivo
+    if (recienActivado) return; // No alarmar si recién se activó (primera toma)
+    
+    // La alarma debe sonar desde la SEGUNDA toma en adelante
+    // Si tomas_completadas = 0, está esperando primera toma (no suena)
+    // Si tomas_completadas >= 1, ya tomó la primera, ahora debe sonar
+    // PERO solo si debeTomar es true (segundosRestantes <= 0)
+    if (recordatorio.tomas_completadas < 1) return;
+    
+    // IMPORTANTE: debeTomar significa que segundosRestantes <= 0
+    // Esto evita que suene inmediatamente después de tomar la primera dosis
+    // porque segundosRestantes será > 0 (el intervalo completo)
     if (debeTomar && !yaAlarmo) {
       // Reproducir alarma sonora + vibración + notificación
-      alarmaCompleta(recordatorio.medicamento_nombre, recordatorio.dosis_a_tomar);
+      alarmaCompleta(recordatorio.medicamento_nombre, recordatorio.dosis_a_tomar, tipoSonido, audioUrl);
       setYaAlarmo(true);
     }
-  }, [debeTomar, yaAlarmo, recordatorio, alarmaCompleta]);
+  }, [debeTomar, yaAlarmo, recordatorio.tomas_completadas, recordatorio.medicamento_nombre, recordatorio.dosis_a_tomar, alarmaCompleta, estaInactivo, recienActivado, tipoSonido, audioUrl]);
 
   // Calcular porcentaje de progreso
   const porcentajeTranscurrido = Math.max(0, Math.min(100, 
     ((recordatorio.intervalo_horas * 3600 - segundosRestantes) / (recordatorio.intervalo_horas * 3600)) * 100
   ));
 
+  // Si está inactivo y NO ha tomado ninguna dosis, mostrar tarjeta especial (esperando primera toma)
+  if (estaInactivo && recordatorio.tomas_completadas === 0) {
+    return (
+      <Card className="border-2 border-yellow-500 bg-yellow-50">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <Pill className="h-6 w-6 text-yellow-600" />
+                  {recordatorio.medicamento_nombre}
+                </CardTitle>
+                <Badge variant="outline" className="border-yellow-600 text-yellow-700 bg-yellow-100">
+                  🕑 Esperando toma inicial
+                </Badge>
+                {esAsignadoPorProfesional && (
+                  <Badge variant="outline" className="border-blue-500 text-blue-700 bg-blue-50">
+                    👨‍⚕️ Asignado por profesional
+                  </Badge>
+                )}
+              </div>
+              <CardDescription className="text-base mt-1">
+                {recordatorio.categoria_nombre}
+                {recordatorio.profesional_nombre && (
+                  <span className="block text-sm text-blue-600 font-medium mt-1">
+                    Dr(a). {recordatorio.profesional_nombre} {recordatorio.profesional_apellido}
+                  </span>
+                )}
+              </CardDescription>
+            </div>
+            {!esAsignadoPorProfesional && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onEliminar(recordatorio.id)}
+                className="flex-shrink-0"
+                title="Eliminar recordatorio"
+              >
+                <Trash2 className="h-5 w-5 text-destructive" />
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-2 text-base flex-wrap">
+            <Badge variant="secondary" className="text-base px-3 py-1 bg-yellow-100">
+              {recordatorio.dosis_a_tomar}
+            </Badge>
+            <span className="text-muted-foreground">
+              {recordatorio.intervalo_horas < 1 
+                ? 'cada 10 segundos (PRUEBA)' 
+                : `cada ${recordatorio.intervalo_horas}h (${Math.round(24 / recordatorio.intervalo_horas)} veces/día)`
+              }
+            </span>
+          </div>
+
+          {recordatorio.tomas_totales && (
+            <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-yellow-900">Tomas programadas:</span>
+                <span className="text-lg font-bold text-yellow-700">
+                  {recordatorio.tomas_totales} tomas
+                </span>
+              </div>
+              <p className="text-xs text-yellow-700 mt-1">
+                Toma inicial (sin alarma) + {recordatorio.tomas_totales} tomas con alarma
+              </p>
+            </div>
+          )}
+
+          <div className="bg-yellow-200 border-2 border-yellow-400 rounded-lg p-4">
+            <p className="text-sm font-semibold text-yellow-900 mb-2">
+              👉 Para activar este recordatorio:
+            </p>
+            <p className="text-sm text-yellow-800 mb-2">
+              Toma tu dosis AHORA y haz clic en el botón de abajo. Esta es tu <strong>toma inicial</strong> (no cuenta para el progreso).
+            </p>
+            <p className="text-xs text-yellow-700 font-medium">
+              ⚠️ Importante: NO sonará alarma ahora porque ya tomaste la dosis. Las alarmas comenzarán para las siguientes tomas.
+            </p>
+          </div>
+
+          {recordatorio.notas && (
+            <p className="text-sm text-muted-foreground border-l-2 border-yellow-500 pl-3">
+              {recordatorio.notas}
+            </p>
+          )}
+
+          <Button 
+            onClick={() => onMarcarTomado(recordatorio.id)}
+            className="w-full gap-2 text-base min-h-[52px] bg-yellow-600 hover:bg-yellow-700"
+            size="lg"
+          >
+            <CheckCircle2 className="h-6 w-6" />
+            Ya tomé mi dosis inicial - Activar alarmas
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Recordatorio activo normal
   return (
     <Card className={debeTomar ? 'border-2 border-destructive animate-pulse' : ''}>
       <CardHeader className="pb-3">
@@ -180,14 +336,29 @@ function TemporizadorCard({
         )}
 
         {debeTomar && (
-          <Button 
-            onClick={() => onMarcarTomado(recordatorio.id)}
-            className="w-full gap-2 text-base min-h-[52px] animate-bounce"
-            size="lg"
-          >
-            <CheckCircle2 className="h-6 w-6" />
-            Marcar como tomado
-          </Button>
+          <>
+            {yaAlarmo && segundosDesdeAlarma > 0 && (
+              <Alert className="border-orange-500 bg-orange-50">
+                <Timer className="h-4 w-4 text-orange-600" />
+                <AlertDescription className="text-orange-800">
+                  <strong>⚠️ Advertencia:</strong> Si no marcas como tomado en{' '}
+                  <strong>{formatearTiempo(300 - segundosDesdeAlarma)}</strong>, 
+                  se marcará automáticamente como NO TOMADO y avanzará a la siguiente toma.
+                </AlertDescription>
+              </Alert>
+            )}
+            <Button 
+              onClick={() => {
+                detenerAlarma();
+                onMarcarTomado(recordatorio.id);
+              }}
+              className="w-full gap-2 text-base min-h-[52px] animate-bounce"
+              size="lg"
+            >
+              <CheckCircle2 className="h-6 w-6" />
+              Marcar como tomado
+            </Button>
+          </>
         )}
 
         {recordatorio.ultima_toma && (
@@ -212,6 +383,17 @@ export default function Recordatorios() {
   const [loading, setLoading] = useState(true);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [permisoNotificaciones, setPermisoNotificaciones] = useState(false);
+  const [tipoSonidoSeleccionado, setTipoSonidoSeleccionado] = useState<TipoSonido>(() => {
+    // Cargar preferencia de sonido desde localStorage
+    const sonidoGuardado = localStorage.getItem('preferenciaSonidoAlarma');
+    return (sonidoGuardado as TipoSonido) || 'beep';
+  });
+  // DESACTIVADO TEMPORALMENTE: Audio personalizado
+  // const [audioPersonalizadoUrl, setAudioPersonalizadoUrl] = useState<string>('');
+  // const [subiendoAudio, setSubiendoAudio] = useState(false);
+
+  // Estados para secciones colapsables
+  const [mostrarConfiguracion, setMostrarConfiguracion] = useState(false);
 
   // Formulario
   const [medicamentoSeleccionado, setMedicamentoSeleccionado] = useState('');
@@ -224,7 +406,17 @@ export default function Recordatorios() {
   useEffect(() => {
     cargarDatos();
     verificarPermisoNotificaciones();
+    // DESACTIVADO TEMPORALMENTE: Cargar audio personalizado
+    // const audioGuardado = localStorage.getItem('audioPersonalizadoUrl');
+    // if (audioGuardado) {
+    //   setAudioPersonalizadoUrl(audioGuardado);
+    // }
   }, []);
+
+  // Guardar preferencia de sonido cuando cambie
+  useEffect(() => {
+    localStorage.setItem('preferenciaSonidoAlarma', tipoSonidoSeleccionado);
+  }, [tipoSonidoSeleccionado]);
 
   async function verificarPermisoNotificaciones() {
     if ('Notification' in window) {
@@ -237,19 +429,96 @@ export default function Recordatorios() {
     setPermisoNotificaciones(permiso);
     if (permiso) {
       toast({
-        title: '🔔 Notificaciones activadas',
+        title: ' Notificaciones activadas',
         description: 'Recibirás alertas INCLUSO con el navegador cerrado'
       });
     }
   }
 
   function probarAlarma() {
-    reproducirAlarma();
+    // DESACTIVADO TEMPORALMENTE: Audio personalizado
+    // const audioUrl = tipoSonidoSeleccionado === 'personalizado' ? audioPersonalizadoUrl : undefined;
+    // reproducirAlarma(tipoSonidoSeleccionado, audioUrl);
+    reproducirAlarma(tipoSonidoSeleccionado);
+    const sonidoInfo = SONIDOS_ALARMA.find(s => s.value === tipoSonidoSeleccionado);
     toast({
-      title: '🔊 Probando alarma',
-      description: 'Este es el sonido que escucharás cuando sea hora de tomar'
+      title: 'Probando alarma',
+      description: `Sonido: ${sonidoInfo?.label} - ${sonidoInfo?.descripcion}`
     });
   }
+
+  // DESACTIVADO TEMPORALMENTE: Función de subir audio personalizado
+  /*
+  async function subirAudioPersonalizado(archivo: File) {
+    if (!user) return;
+
+    setSubiendoAudio(true);
+
+    try {
+      // Validar tipo de archivo
+      if (!archivo.type.startsWith('audio/')) {
+        toast({
+          title: 'Error',
+          description: 'Solo se permiten archivos de audio (MP3, WAV, OGG, etc.)',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Validar tamaño (máximo 5MB)
+      if (archivo.size > 5 * 1024 * 1024) {
+        toast({
+          title: 'Error',
+          description: 'El archivo no debe superar 5MB',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Subir a Supabase Storage
+      const nombreArchivo = `${user.id}/alarma-${Date.now()}.${archivo.name.split('.').pop()}`;
+      const { data, error } = await supabase.storage
+        .from('audio-alarmas')
+        .upload(nombreArchivo, archivo, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Error al subir audio:', error);
+        toast({
+          title: 'Error al subir audio',
+          description: error.message,
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Obtener URL pública
+      const { data: urlData } = supabase.storage
+        .from('audio-alarmas')
+        .getPublicUrl(nombreArchivo);
+
+      setAudioPersonalizadoUrl(urlData.publicUrl);
+      localStorage.setItem('audioPersonalizadoUrl', urlData.publicUrl);
+      setTipoSonidoSeleccionado('personalizado');
+
+      toast({
+        title: '✅ Audio cargado',
+        description: 'Tu sonido personalizado está listo'
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo cargar el audio',
+        variant: 'destructive'
+      });
+    } finally {
+      setSubiendoAudio(false);
+    }
+  }
+  */
 
   // Actualizar recordatorios cada minuto
   useEffect(() => {
@@ -294,7 +563,7 @@ export default function Recordatorios() {
       .from('vista_recordatorios_completa')
       .select('*')
       .eq('user_id', user.id)
-      .eq('activo', true)
+      .order('activo', { ascending: false })
       .order('proxima_toma');
 
     if (error) {
@@ -302,7 +571,12 @@ export default function Recordatorios() {
       return;
     }
 
-    setRecordatorios(data || []);
+    // Filtrar: mostrar solo activos o inactivos que esperan primera toma
+    const recordatoriosFiltrados = (data || []).filter(r => 
+      r.activo || (!r.activo && r.tomas_completadas === 0)
+    );
+
+    setRecordatorios(recordatoriosFiltrados);
   }
 
   async function agregarRecordatorio(e: React.FormEvent) {
@@ -376,7 +650,7 @@ export default function Recordatorios() {
       : `${intervaloNum} horas`;
 
     toast({
-      title: '✅ Recordatorio creado',
+      title: 'Recordatorio creado',
       description: serviceWorkerRegistered 
         ? `Recibirás alertas cada ${intervaloTexto} INCLUSO con navegador cerrado` 
         : `Te avisaremos cada ${intervaloTexto}. Tomarás ${vecesAlDia} veces al día`
@@ -396,26 +670,31 @@ export default function Recordatorios() {
     if (!recordatorio) return;
 
     const ahora = new Date();
+    const esPrimeraToma = !recordatorio.activo && recordatorio.tomas_completadas === 0;
     
-    // IMPORTANTE: Guardar la hora programada ANTES de actualizar
-    const horaProgramadaActual = recordatorio.proxima_toma;
-    
+    // IMPORTANTE: Para la primera toma, ya tomó la pastilla AHORA
+    // La próxima toma debe ser después del intervalo completo
+    // Ejemplo: Si toma cada 8h, próxima toma es en 8h (no debe sonar ahora)
     const proximaToma = new Date(ahora.getTime() + recordatorio.intervalo_horas * 60 * 60 * 1000);
     
-    // Incrementar contador de tomas completadas
-    const nuevasTomasCompletadas = recordatorio.tomas_completadas + 1;
+    // CLAVE: En la primera activación NO incrementar contador (queda en 0)
+    // Esto evita que suene la alarma (solo suena cuando tomas_completadas >= 1)
+    // En las siguientes tomas SÍ incrementa normalmente
+    const nuevasTomasCompletadas = esPrimeraToma ? 0 : recordatorio.tomas_completadas + 1;
     
     // Verificar si ya completó todas las tomas
     const terminoTratamiento = recordatorio.tomas_totales 
       ? nuevasTomasCompletadas >= recordatorio.tomas_totales
       : false;
 
-    // Primero guardar en historial (antes de actualizar el recordatorio)
+    // Guardar en historial (usar ahora como hora_programada si es primera toma)
+    const horaProgramada = esPrimeraToma ? ahora.toISOString() : (recordatorio.proxima_toma || ahora.toISOString());
+    
     const { error: errorHistorial } = await supabase
       .from('historial_tomas')
       .insert({
         recordatorio_id: recordatorioId,
-        hora_programada: horaProgramadaActual, // Usar la hora guardada
+        hora_programada: horaProgramada,
         hora_real: ahora.toISOString(),
         tomado: true
       });
@@ -430,15 +709,22 @@ export default function Recordatorios() {
       return;
     }
 
-    // Luego actualizar el recordatorio
+    // Actualizar el recordatorio
+    const updateData: any = {
+      ultima_toma: ahora.toISOString(),
+      proxima_toma: terminoTratamiento ? null : proximaToma.toISOString(),
+      tomas_completadas: nuevasTomasCompletadas,
+      activo: esPrimeraToma ? true : !terminoTratamiento // Activar en primera toma, desactivar si terminó
+    };
+    
+    // Solo establecer inicio_tratamiento en la primera toma
+    if (esPrimeraToma) {
+      updateData.inicio_tratamiento = ahora.toISOString();
+    }
+    
     const { error: errorUpdate } = await supabase
       .from('recordatorios_medicamentos')
-      .update({
-        ultima_toma: ahora.toISOString(),
-        proxima_toma: terminoTratamiento ? null : proximaToma.toISOString(),
-        tomas_completadas: nuevasTomasCompletadas,
-        activo: !terminoTratamiento // Desactivar si terminó
-      })
+      .update(updateData)
       .eq('id', recordatorioId);
 
     if (errorUpdate) {
@@ -451,10 +737,39 @@ export default function Recordatorios() {
       return;
     }
 
+    // Actualización optimista del estado local para UI inmediata
+    setRecordatorios(prev => {
+      const updated = prev.map(r => {
+        if (r.id === recordatorioId) {
+          return {
+            ...r,
+            activo: esPrimeraToma ? true : !terminoTratamiento,
+            tomas_completadas: nuevasTomasCompletadas,
+            ultima_toma: ahora.toISOString(),
+            proxima_toma: terminoTratamiento ? null : proximaToma.toISOString(),
+            segundos_restantes: terminoTratamiento ? 0 : recordatorio.intervalo_horas * 3600,
+            inicio_tratamiento: esPrimeraToma ? ahora.toISOString() : r.inicio_tratamiento
+          };
+        }
+        return r;
+      });
+      
+      // Filtrar: mantener solo activos o inactivos que NO han sido activados
+      return updated.filter(r => 
+        r.activo || (!r.activo && r.tomas_completadas === 0)
+      );
+    });
+
     if (terminoTratamiento) {
       toast({
         title: '🎉 ¡Tratamiento completado!',
         description: `Has terminado todas las ${recordatorio.tomas_totales} tomas de ${recordatorio.medicamento_nombre}`,
+        duration: 5000
+      });
+    } else if (esPrimeraToma) {
+      toast({
+        title: '✅ Tratamiento iniciado',
+        description: `Primera dosis tomada. La alarma sonará en ${recordatorio.intervalo_horas} horas para recordarte la siguiente toma`,
         duration: 5000
       });
     } else {
@@ -471,13 +786,77 @@ export default function Recordatorios() {
     }
 
     cargarRecordatorios();
+    
+    // Forzar una segunda recarga después de 500ms para asegurar que la UI se actualice
+    // Esto soluciona problemas de cache en la vista de Supabase
+    setTimeout(() => {
+      cargarRecordatorios();
+    }, 500);
+  }
+
+  // Marcar como NO tomado (auto-avance después de 5 minutos)
+  async function marcarComoNoTomado(recordatorioId: string) {
+    const recordatorio = recordatorios.find(r => r.id === recordatorioId);
+    if (!recordatorio) return;
+
+    const ahora = new Date();
+    const proximaToma = new Date(ahora.getTime() + recordatorio.intervalo_horas * 60 * 60 * 1000);
+
+    // Guardar en historial como NO tomado
+    const { error: errorHistorial } = await supabase
+      .from('historial_tomas')
+      .insert({
+        recordatorio_id: recordatorioId,
+        hora_programada: recordatorio.proxima_toma || ahora.toISOString(),
+        hora_real: ahora.toISOString(),
+        tomado: false,
+        notas: 'Auto-avance: No se marcó como tomado en 5 minutos'
+      });
+
+    if (errorHistorial) {
+      console.error('Error al guardar historial de NO tomado:', errorHistorial);
+    }
+
+    // Actualizar próxima toma sin incrementar contador
+    const { error: errorUpdate } = await supabase
+      .from('recordatorios_medicamentos')
+      .update({
+        proxima_toma: proximaToma.toISOString(),
+      })
+      .eq('id', recordatorioId);
+
+    if (errorUpdate) {
+      console.error('Error al actualizar recordatorio:', errorUpdate);
+    }
+
+    toast({
+      title: '⏭️ Toma omitida',
+      description: `No se marcó como tomado en 5 minutos. Próxima alarma en ${recordatorio.intervalo_horas} horas`,
+      variant: 'destructive',
+      duration: 7000
+    });
+
+    cargarRecordatorios();
   }
 
   async function eliminarRecordatorio(id: string) {
-    const { error } = await supabase
-      .from('recordatorios_medicamentos')
-      .update({ activo: false })
-      .eq('id', id);
+    const recordatorio = recordatorios.find(r => r.id === id);
+    
+    // Si el recordatorio está activo, pedir confirmación
+    if (recordatorio?.activo) {
+      const confirmar = window.confirm(
+        `¿Estás seguro de eliminar el recordatorio de "${recordatorio.medicamento_nombre}"?\n\nEste recordatorio está activo y ya tiene ${recordatorio.tomas_completadas} tomas registradas.`
+      );
+      if (!confirmar) return;
+    }
+
+    // Si está INACTIVO (esperando primera toma), ELIMINAR físicamente
+    // Si está ACTIVO, solo desactivar
+    const esInactivo = !recordatorio?.activo;
+    
+    const { error } = esInactivo
+      ? await supabase.from('recordatorios_medicamentos').delete().eq('id', id)
+      : await supabase.from('recordatorios_medicamentos').update({ activo: false }).eq('id', id);
 
     if (error) {
       toast({
@@ -488,12 +867,18 @@ export default function Recordatorios() {
       return;
     }
 
+    // Actualización optimista: eliminar del estado local inmediatamente
+    setRecordatorios(prev => prev.filter(r => r.id !== id));
+
     toast({
       title: 'Recordatorio eliminado',
-      description: 'Ya no recibirás notificaciones'
+      description: esInactivo 
+        ? 'El recordatorio ha sido eliminado completamente'
+        : 'Ya no recibirás notificaciones'
     });
 
-    cargarRecordatorios();
+    // Recargar después para confirmar
+    setTimeout(() => cargarRecordatorios(), 500);
   }
 
   const medicamentoInfo = medicamentoSeleccionado 
@@ -536,28 +921,113 @@ export default function Recordatorios() {
         </div>
       </div>
 
-      {/* Alerta de notificaciones */}
-      {!permisoNotificaciones && (
-        <Alert>
-          <Bell className="h-5 w-5" />
-          <AlertDescription className="text-base">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <strong>Activa las notificaciones</strong> para recibir alertas <strong>incluso con el navegador cerrado</strong>
+      {/* Sección colapsable de configuración */}
+      <Collapsible open={mostrarConfiguracion} onOpenChange={setMostrarConfiguracion}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  <CardTitle className="text-lg">Configuración</CardTitle>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={permisoNotificaciones ? "default" : "secondary"}>
+                    {permisoNotificaciones ? "✓ Activo" : "Configurar"}
+                  </Badge>
+                  {mostrarConfiguracion ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={probarAlarma} variant="outline" size="sm" className="gap-2">
-                  <Volume2 className="h-4 w-4" />
-                  Probar Sonido
-                </Button>
-                <Button onClick={activarNotificaciones} size="sm">
-                  Activar
-                </Button>
+              <CardDescription>
+                Notificaciones y sonidos de alarma
+              </CardDescription>
+            </CardHeader>
+          </CollapsibleTrigger>
+          
+          <CollapsibleContent>
+            <CardContent className="space-y-4 pt-0">
+              {/* Alerta de notificaciones */}
+              {!permisoNotificaciones && (
+                <Alert>
+                  <Bell className="h-5 w-5" />
+                  <AlertDescription className="text-base">
+                    <div className="flex flex-col gap-3">
+                      <div>
+                        <strong>Activa las notificaciones</strong> para recibir alertas <strong>incluso con el navegador cerrado</strong>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={probarAlarma} variant="outline" size="sm" className="gap-2">
+                          <Volume2 className="h-4 w-4" />
+                          Probar Sonido
+                        </Button>
+                        <Button onClick={activarNotificaciones} size="sm">
+                          Activar
+                        </Button>
+                      </div>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Selector de sonido de alarma */}
+              <div className="space-y-3">
+                <div>
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <Volume2 className="h-4 w-4" />
+                    Sonido de Alarma
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Elige el sonido que escucharás cuando sea hora de tomar tu medicamento
+                  </p>
+                </div>
+                
+                <div className="flex gap-3 items-end">
+                  <div className="flex-1">
+                    <Select
+                      value={tipoSonidoSeleccionado}
+                      onValueChange={(value) => setTipoSonidoSeleccionado(value as TipoSonido)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SONIDOS_ALARMA.map((sonido) => (
+                          <SelectItem key={sonido.value} value={sonido.value}>
+                            <div className="flex flex-col">
+                              <span>{sonido.label}</span>
+                              <span className="text-xs text-muted-foreground">{sonido.descripcion}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={probarAlarma} variant="default" className="gap-2" size="sm">
+                    <Play className="h-4 w-4" />
+                    Probar
+                  </Button>
+                </div>
+
+                {/* DESACTIVADO TEMPORALMENTE: Subir audio personalizado
+                {tipoSonidoSeleccionado === 'personalizado' && (
+                  <div className="mt-4 p-4 border rounded-lg bg-muted/50 space-y-3">
+                    // ... código comentado
+                  </div>
+                )}
+                */}
+
+                <Alert>
+                  <Timer className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    <strong>📢 Duración:</strong> La alarma sonará durante <strong>{CONFIGURACION_ALARMA.DURACION_ALARMA_SEGUNDOS} segundos</strong> 
+                    {' '}y se repetirá cada 3 segundos hasta que marques como tomado.
+                  </AlertDescription>
+                </Alert>
               </div>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Estado del Service Worker */}
       {serviceWorkerRegistered && (
@@ -727,6 +1197,8 @@ export default function Recordatorios() {
               recordatorio={recordatorio}
               onMarcarTomado={marcarComoTomado}
               onEliminar={eliminarRecordatorio}
+              onMarcarNoTomado={marcarComoNoTomado}
+              tipoSonido={tipoSonidoSeleccionado}
             />
           ))}
         </div>

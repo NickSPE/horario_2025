@@ -1,8 +1,10 @@
 ﻿import { useEffect, useState, useMemo } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import type { CategoriaMedicamento, Medicamento } from "@shared/medicamentos";
-import { Search, ChevronDown, ChevronUp, Plus, MoreVertical, Edit, Trash2 } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Plus, MoreVertical, Edit, Trash2, Clock, UserPlus } from "lucide-react";
+import { BuscarPacienteDialog } from "@/components/profesional/BuscarPacienteDialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -30,9 +32,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { INTERVALOS_DISPONIBLES } from "@shared/recordatorios";
+
+interface Paciente {
+  id: string;
+  user_id: string; // UUID de auth.users
+  nombre: string;
+  apellido: string;
+  email: string;
+}
 
 export default function MedicamentosProfesional() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [categories, setCategories] = useState<CategoriaMedicamento[]>([]);
   const [meds, setMeds] = useState<Medicamento[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +67,25 @@ export default function MedicamentosProfesional() {
   });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // Estados para asignar recordatorio
+  const [isRecordatorioDialogOpen, setIsRecordatorioDialogOpen] = useState(false);
+  const [selectedMedicamento, setSelectedMedicamento] = useState<Medicamento | null>(null);
+  const [misPacientes, setMisPacientes] = useState<Paciente[]>([]);
+  const [loadingPacientes, setLoadingPacientes] = useState(false);
+  const [recordatorioForm, setRecordatorioForm] = useState({
+    paciente_id: "",
+    dosis: "",
+    intervalo_horas: "8",
+    indicaciones: "",
+    tomas_totales: "",
+  });
+  const [creatingRecordatorio, setCreatingRecordatorio] = useState(false);
+  const [intervaloPersonalizado, setIntervaloPersonalizado] = useState(false);
+  const [intervaloCustom, setIntervaloCustom] = useState({ valor: "", unidad: "horas" });
+  
+  // Estado para el diálogo de buscar paciente
+  const [isBuscarPacienteDialogOpen, setIsBuscarPacienteDialogOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -307,6 +338,175 @@ export default function MedicamentosProfesional() {
     }
   };
 
+  const handleOpenRecordatorioDialog = async (med: Medicamento) => {
+    setSelectedMedicamento(med);
+    setRecordatorioForm({
+      paciente_id: "",
+      dosis: med.dosis_recomendada || "",
+      intervalo_horas: "8",
+      indicaciones: med.indicaciones || "",
+      tomas_totales: "",
+    });
+    setIntervaloPersonalizado(false);
+    setIntervaloCustom({ valor: "", unidad: "horas" });
+    setIsRecordatorioDialogOpen(true);
+    
+    // Cargar lista de pacientes
+    if (user?.id) {
+      setLoadingPacientes(true);
+      try {
+        const supabase = getSupabase();
+        
+        // Primero obtener las relaciones paciente-profesional
+        const { data: relaciones, error: errorRelaciones } = await supabase
+          .from("paciente_profesional")
+          .select("paciente_id")
+          .eq("profesional_id", user.id)
+          .eq("activo", true);
+
+        if (errorRelaciones) throw errorRelaciones;
+
+        if (!relaciones || relaciones.length === 0) {
+          setMisPacientes([]);
+          return;
+        }
+
+        // Luego obtener los datos de los pacientes
+        const pacienteIds = relaciones.map(r => r.paciente_id);
+        const { data: pacientesData, error: errorPacientes } = await supabase
+          .from("pacientes")
+          .select("id, user_id, nombre, apellido, email")
+          .in("user_id", pacienteIds);
+
+        if (errorPacientes) throw errorPacientes;
+
+        setMisPacientes(pacientesData || []);
+      } catch (error: any) {
+        toast({
+          title: "Error al cargar pacientes",
+          description: error.message,
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingPacientes(false);
+      }
+    }
+  };
+
+  const handlePacienteSeleccionado = async (paciente: Paciente) => {
+    // Agregar el paciente a la lista si no está
+    if (!misPacientes.find(p => p.id === paciente.id)) {
+      setMisPacientes([...misPacientes, paciente]);
+    }
+    
+    // Seleccionarlo automáticamente en el formulario (usar user_id para auth.users)
+    setRecordatorioForm({
+      ...recordatorioForm,
+      paciente_id: paciente.user_id, // user_id apunta a auth.users(id)
+    });
+    
+    toast({
+      title: "Paciente seleccionado",
+      description: `${paciente.nombre} ${paciente.apellido} fue agregado al recordatorio`,
+    });
+  };
+
+  const handleCreateRecordatorio = async () => {
+    if (!selectedMedicamento || !user?.id) return;
+
+    if (!recordatorioForm.paciente_id) {
+      toast({
+        title: "Error",
+        description: "Debes seleccionar un paciente",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!recordatorioForm.dosis.trim()) {
+      toast({
+        title: "Error",
+        description: "La dosis es obligatoria",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Calcular intervalo en horas
+    let intervaloEnHoras: number;
+    if (intervaloPersonalizado) {
+      const valor = parseFloat(intervaloCustom.valor);
+      if (!valor || valor <= 0) {
+        toast({
+          title: "Error",
+          description: "Ingresa un intervalo válido",
+          variant: "destructive",
+        });
+        return;
+      }
+      intervaloEnHoras = intervaloCustom.unidad === "minutos" ? valor / 60 : valor;
+    } else {
+      intervaloEnHoras = parseFloat(recordatorioForm.intervalo_horas);
+    }
+
+    setCreatingRecordatorio(true);
+
+    try {
+      const supabase = getSupabase();
+      
+      // PASO 1: Crear o verificar la relación profesional-paciente
+      // paciente_id debe ser el user_id (auth.users.id) no el id de la tabla pacientes
+      const { error: relacionError } = await supabase
+        .from("paciente_profesional")
+        .upsert([
+          {
+            paciente_id: recordatorioForm.paciente_id, // Este es user_id de auth.users
+            profesional_id: user.id,
+          }
+        ], { onConflict: 'paciente_id,profesional_id' });
+
+      if (relacionError) throw relacionError;
+      
+      // PASO 2: Crear el recordatorio (INACTIVO - espera primera toma del paciente)
+      const recordatorioData = {
+        user_id: recordatorioForm.paciente_id,
+        medicamento_id: selectedMedicamento.id,
+        dosis_personalizada: recordatorioForm.dosis.trim(),
+        intervalo_horas: intervaloEnHoras,
+        notas: recordatorioForm.indicaciones.trim() || null,
+        tomas_totales: recordatorioForm.tomas_totales ? parseInt(recordatorioForm.tomas_totales) : null,
+        tomas_completadas: 0,
+        activo: false, // ⏸️ INACTIVO - El paciente lo activa al tomar la primera dosis
+        creado_por_profesional_id: user.id,
+      };
+
+      const { error } = await supabase
+        .from("recordatorios_medicamentos")
+        .insert([recordatorioData]);
+
+      if (error) throw error;
+
+      const paciente = misPacientes.find(p => p.user_id === recordatorioForm.paciente_id);
+      
+      toast({
+        title: "✅ Recordatorio asignado",
+        description: `${selectedMedicamento.nombre} asignado a ${paciente?.nombre} ${paciente?.apellido}. El paciente debe tomar la primera dosis para activar las alarmas.`,
+        duration: 7000,
+      });
+
+      setIsRecordatorioDialogOpen(false);
+      setSelectedMedicamento(null);
+    } catch (error: any) {
+      toast({
+        title: "Error al asignar recordatorio",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingRecordatorio(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -355,11 +555,11 @@ export default function MedicamentosProfesional() {
         </div>
       </div>
       
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
         {filteredMeds.map((med) => {
           const isExpanded = expandedMedId === med.id;
           return (
-            <Card key={med.id} className="overflow-hidden hover:shadow-lg transition-all duration-300">
+            <Card key={med.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 h-fit">
               <CardHeader className="p-0 relative">
                 <div className="aspect-square bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center overflow-hidden">
                   {med.imagen_url ? (
@@ -437,14 +637,23 @@ export default function MedicamentosProfesional() {
                   </div>
                 )}
               </CardContent>
-              <CardFooter className="p-4 pt-0">
+              <CardFooter className="p-3 pt-0 flex flex-col gap-2">
                 <Button 
-                  className="w-full bg-primary hover:bg-primary/90" 
-                  size="default"
+                  className="w-full bg-green-600 hover:bg-green-700" 
+                  size="sm"
+                  onClick={() => handleOpenRecordatorioDialog(med)}
+                >
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  <span className="text-sm">Asignar a Paciente</span>
+                </Button>
+                <Button 
+                  className="w-full" 
+                  variant="outline"
+                  size="sm"
                   onClick={() => setExpandedMedId(isExpanded ? null : med.id)}
                 >
-                  <span>{isExpanded ? "Ocultar" : "Ver detalles"}</span>
-                  {isExpanded ? <ChevronUp className="ml-2 h-4 w-4" /> : <ChevronDown className="ml-2 h-4 w-4" />}
+                  <span className="text-xs">{isExpanded ? "Ocultar" : "Ver detalles"}</span>
+                  {isExpanded ? <ChevronUp className="ml-2 h-3 w-3" /> : <ChevronDown className="ml-2 h-3 w-3" />}
                 </Button>
               </CardFooter>
             </Card>
@@ -597,6 +806,194 @@ export default function MedicamentosProfesional() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo para asignar recordatorio a paciente */}
+      <Dialog open={isRecordatorioDialogOpen} onOpenChange={setIsRecordatorioDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-green-600" />
+              Asignar Recordatorio a Paciente
+            </DialogTitle>
+            <DialogDescription>
+              Asigna {selectedMedicamento?.nombre} a uno de tus pacientes
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Medicamento seleccionado (solo lectura) */}
+            <div className="space-y-2">
+              <Label>Medicamento</Label>
+              <div className="p-3 bg-muted rounded-md border">
+                <p className="font-medium">{selectedMedicamento?.nombre}</p>
+                <p className="text-sm text-muted-foreground">
+                  {categories.find(c => c.id === selectedMedicamento?.categoria_id)?.nombre}
+                </p>
+              </div>
+            </div>
+
+            {/* Selección de paciente */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="paciente">Paciente *</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsBuscarPacienteDialogOpen(true)}
+                >
+                  <UserPlus className="h-4 w-4 mr-1" />
+                  Seleccionar Paciente
+                </Button>
+              </div>
+              {loadingPacientes ? (
+                <div className="p-3 text-center text-muted-foreground">
+                  Cargando pacientes...
+                </div>
+              ) : recordatorioForm.paciente_id ? (
+                <div className="p-3 bg-green-50 rounded-md border border-green-200">
+                  <p className="text-sm text-green-800">
+                    ✓ Paciente seleccionado: {misPacientes.find(p => p.user_id === recordatorioForm.paciente_id)?.nombre} {misPacientes.find(p => p.user_id === recordatorioForm.paciente_id)?.apellido}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 bg-blue-50 rounded-md border border-blue-200">
+                  <p className="text-sm text-blue-800">
+                    Haz clic en "Seleccionar Paciente" para buscar y elegir un paciente
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Dosis */}
+            <div className="space-y-2">
+              <Label htmlFor="dosis">Dosis *</Label>
+              <Input
+                id="dosis"
+                placeholder="Ej: 1 tableta, 5ml, 2 cápsulas..."
+                value={recordatorioForm.dosis}
+                onChange={(e) => setRecordatorioForm({ ...recordatorioForm, dosis: e.target.value })}
+              />
+            </div>
+
+            {/* Intervalo */}
+            <div className="space-y-2">
+              <Label htmlFor="intervalo">Frecuencia *</Label>
+              <Select
+                value={recordatorioForm.intervalo_horas}
+                onValueChange={(value) => {
+                  setRecordatorioForm({ ...recordatorioForm, intervalo_horas: value });
+                  setIntervaloPersonalizado(value === "-1");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {INTERVALOS_DISPONIBLES.map((int) => (
+                    <SelectItem key={int.value} value={int.value.toString()}>
+                      {int.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Intervalo personalizado */}
+            {intervaloPersonalizado && (
+              <div className="space-y-2 border rounded-lg p-4 bg-muted/50">
+                <Label>Configurar intervalo personalizado</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="intervalo-valor">Cantidad *</Label>
+                    <Input
+                      id="intervalo-valor"
+                      type="number"
+                      min="0.1"
+                      step="0.5"
+                      placeholder="Ej: 30"
+                      value={intervaloCustom.valor}
+                      onChange={(e) =>
+                        setIntervaloCustom({ ...intervaloCustom, valor: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="intervalo-unidad">Unidad *</Label>
+                    <Select
+                      value={intervaloCustom.unidad}
+                      onValueChange={(value) =>
+                        setIntervaloCustom({ ...intervaloCustom, unidad: value as "minutos" | "horas" })
+                      }
+                    >
+                      <SelectTrigger id="intervalo-unidad">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="minutos">Minutos</SelectItem>
+                        <SelectItem value="horas">Horas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tomas totales (opcional) */}
+            <div className="space-y-2">
+              <Label htmlFor="tomas_totales">Tomas totales (opcional)</Label>
+              <Input
+                id="tomas_totales"
+                type="number"
+                min="1"
+                placeholder="Dejar vacío para recordatorio continuo"
+                value={recordatorioForm.tomas_totales}
+                onChange={(e) => setRecordatorioForm({ ...recordatorioForm, tomas_totales: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Si se define, el recordatorio se desactivará al completar todas las tomas
+              </p>
+            </div>
+
+            {/* Indicaciones */}
+            <div className="space-y-2">
+              <Label htmlFor="indicaciones">Indicaciones adicionales (opcional)</Label>
+              <Textarea
+                id="indicaciones"
+                placeholder="Ej: Tomar con alimentos, antes de dormir..."
+                value={recordatorioForm.indicaciones}
+                onChange={(e) => setRecordatorioForm({ ...recordatorioForm, indicaciones: e.target.value })}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsRecordatorioDialogOpen(false)}
+              disabled={creatingRecordatorio}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateRecordatorio}
+              disabled={creatingRecordatorio || misPacientes.length === 0}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {creatingRecordatorio ? "Asignando..." : "Asignar Recordatorio"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo para buscar y asignar paciente */}
+      <BuscarPacienteDialog
+        open={isBuscarPacienteDialogOpen}
+        onOpenChange={setIsBuscarPacienteDialogOpen}
+        onPacienteSeleccionado={handlePacienteSeleccionado}
+        profesionalId={user?.id || ""}
+      />
     </section>
   );
 }
