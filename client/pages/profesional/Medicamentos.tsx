@@ -1,20 +1,7 @@
-﻿import { useEffect, useState, useMemo } from "react";
-import { getSupabase } from "@/lib/supabase";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
-import type { CategoriaMedicamento, Medicamento } from "@shared/medicamentos";
-import { Search, ChevronDown, ChevronUp, Plus, MoreVertical, Edit, Trash2, Clock, UserPlus } from "lucide-react";
-import { BuscarPacienteDialog } from "@/components/profesional/BuscarPacienteDialog";
-import { Input } from "@/components/ui/input";
+﻿import { BuscarPacienteDialog } from "@/components/profesional/BuscarPacienteDialog";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -23,8 +10,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -32,7 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { getSupabase } from "@/lib/supabase";
+import type { CategoriaMedicamento, Medicamento } from "@shared/medicamentos";
 import { INTERVALOS_DISPONIBLES } from "@shared/recordatorios";
+import { ChevronDown, ChevronUp, Clock, Edit, MoreVertical, Plus, Search, Trash2, UserPlus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 interface Paciente {
   id: string;
@@ -51,7 +51,7 @@ export default function MedicamentosProfesional() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("Todos");
   const [expandedMedId, setExpandedMedId] = useState<string | null>(null);
-  
+
   // Estados para el diálogo de agregar/editar
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMed, setEditingMed] = useState<Medicamento | null>(null);
@@ -83,7 +83,7 @@ export default function MedicamentosProfesional() {
   const [creatingRecordatorio, setCreatingRecordatorio] = useState(false);
   const [intervaloPersonalizado, setIntervaloPersonalizado] = useState(false);
   const [intervaloCustom, setIntervaloCustom] = useState({ valor: "", unidad: "horas" });
-  
+
   // Estado para el diálogo de buscar paciente
   const [isBuscarPacienteDialogOpen, setIsBuscarPacienteDialogOpen] = useState(false);
 
@@ -116,7 +116,7 @@ export default function MedicamentosProfesional() {
         .order("nombre");
       if (catsError) throw catsError;
       setCategories(cats || []);
-      
+
       const { data: medications, error: medsError } = await supabase
         .from("medicamentos")
         .select("*")
@@ -194,7 +194,7 @@ export default function MedicamentosProfesional() {
 
     try {
       const supabase = getSupabase();
-      
+
       // Generar nombre único para el archivo
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -250,7 +250,7 @@ export default function MedicamentosProfesional() {
 
     try {
       const supabase = getSupabase();
-      
+
       if (editingMed) {
         // Actualizar medicamento existente
         const { data, error } = await supabase
@@ -350,13 +350,13 @@ export default function MedicamentosProfesional() {
     setIntervaloPersonalizado(false);
     setIntervaloCustom({ valor: "", unidad: "horas" });
     setIsRecordatorioDialogOpen(true);
-    
+
     // Cargar lista de pacientes
     if (user?.id) {
       setLoadingPacientes(true);
       try {
         const supabase = getSupabase();
-        
+
         // Primero obtener las relaciones paciente-profesional
         const { data: relaciones, error: errorRelaciones } = await supabase
           .from("paciente_profesional")
@@ -398,13 +398,13 @@ export default function MedicamentosProfesional() {
     if (!misPacientes.find(p => p.id === paciente.id)) {
       setMisPacientes([...misPacientes, paciente]);
     }
-    
+
     // Seleccionarlo automáticamente en el formulario (usar user_id para auth.users)
     setRecordatorioForm({
       ...recordatorioForm,
       paciente_id: paciente.user_id, // user_id apunta a auth.users(id)
     });
-    
+
     toast({
       title: "Paciente seleccionado",
       description: `${paciente.nombre} ${paciente.apellido} fue agregado al recordatorio`,
@@ -453,7 +453,7 @@ export default function MedicamentosProfesional() {
 
     try {
       const supabase = getSupabase();
-      
+
       // PASO 1: Crear o verificar la relación profesional-paciente
       // paciente_id debe ser el user_id (auth.users.id) no el id de la tabla pacientes
       const { error: relacionError } = await supabase
@@ -466,7 +466,7 @@ export default function MedicamentosProfesional() {
         ], { onConflict: 'paciente_id,profesional_id' });
 
       if (relacionError) throw relacionError;
-      
+
       // PASO 2: Crear el recordatorio (INACTIVO - espera primera toma del paciente)
       const recordatorioData = {
         user_id: recordatorioForm.paciente_id,
@@ -487,7 +487,7 @@ export default function MedicamentosProfesional() {
       if (error) throw error;
 
       const paciente = misPacientes.find(p => p.user_id === recordatorioForm.paciente_id);
-      
+
       toast({
         title: "✅ Recordatorio asignado",
         description: `${selectedMedicamento.nombre} asignado a ${paciente?.nombre} ${paciente?.apellido}. El paciente debe tomar la primera dosis para activar las alarmas.`,
@@ -526,7 +526,7 @@ export default function MedicamentosProfesional() {
           Agregar medicamento
         </Button>
       </div>
-      
+
       <div className="mt-6">
         <div className="relative mx-auto max-w-2xl">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground/50" />
@@ -539,7 +539,7 @@ export default function MedicamentosProfesional() {
           />
         </div>
       </div>
-      
+
       <div className="mt-6">
         <div className="flex flex-wrap gap-2">
           {allCategories.map((cat) => (
@@ -554,7 +554,7 @@ export default function MedicamentosProfesional() {
           ))}
         </div>
       </div>
-      
+
       <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
         {filteredMeds.map((med) => {
           const isExpanded = expandedMedId === med.id;
@@ -563,9 +563,9 @@ export default function MedicamentosProfesional() {
               <CardHeader className="p-0 relative">
                 <div className="aspect-square bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center overflow-hidden">
                   {med.imagen_url ? (
-                    <img 
-                      src={med.imagen_url} 
-                      alt={med.nombre} 
+                    <img
+                      src={med.imagen_url}
+                      alt={med.nombre}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
@@ -581,9 +581,9 @@ export default function MedicamentosProfesional() {
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="absolute top-2 right-2 h-8 w-8 bg-white/90 hover:bg-white"
                     >
                       <MoreVertical className="h-4 w-4" />
@@ -594,7 +594,7 @@ export default function MedicamentosProfesional() {
                       <Edit className="mr-2 h-4 w-4" />
                       Editar
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => handleDelete(med)}
                       className="text-destructive focus:text-destructive"
                     >
@@ -607,7 +607,7 @@ export default function MedicamentosProfesional() {
               <CardContent className="p-4">
                 <h3 className="font-semibold text-lg mb-2">{med.nombre}</h3>
                 <p className="text-sm text-muted-foreground mb-2">{med.descripcion || "Sin descripción"}</p>
-                
+
                 {isExpanded && (
                   <div className="mt-4 space-y-3 border-t pt-4 animate-in slide-in-from-top-2">
                     {med.dosis_recomendada && (
@@ -638,16 +638,16 @@ export default function MedicamentosProfesional() {
                 )}
               </CardContent>
               <CardFooter className="p-3 pt-0 flex flex-col gap-2">
-                <Button 
-                  className="w-full bg-green-600 hover:bg-green-700" 
+                <Button
+                  className="w-full bg-green-600 hover:bg-green-700"
                   size="sm"
                   onClick={() => handleOpenRecordatorioDialog(med)}
                 >
                   <UserPlus className="mr-2 h-4 w-4" />
                   <span className="text-sm">Asignar a Paciente</span>
                 </Button>
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   variant="outline"
                   size="sm"
                   onClick={() => setExpandedMedId(isExpanded ? null : med.id)}
@@ -673,7 +673,7 @@ export default function MedicamentosProfesional() {
               {editingMed ? "Modifica los datos del medicamento" : "Completa la información del nuevo medicamento"}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="nombre">Nombre del medicamento *</Label>
@@ -684,11 +684,11 @@ export default function MedicamentosProfesional() {
                 placeholder="Ej: Paracetamol 500mg"
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="categoria">Categoría *</Label>
-              <Select 
-                value={formData.categoria_id} 
+              <Select
+                value={formData.categoria_id}
                 onValueChange={(value) => setFormData({ ...formData, categoria_id: value })}
               >
                 <SelectTrigger id="categoria">
@@ -701,7 +701,7 @@ export default function MedicamentosProfesional() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="imagen">Imagen del medicamento</Label>
               <div className="space-y-2">
@@ -719,9 +719,9 @@ export default function MedicamentosProfesional() {
                 {imagePreview && (
                   <div className="relative w-full max-w-xs">
                     <div className="relative w-full h-48 border-2 border-dashed rounded-lg overflow-hidden">
-                      <img 
-                        src={imagePreview} 
-                        alt="Vista previa" 
+                      <img
+                        src={imagePreview}
+                        alt="Vista previa"
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -741,7 +741,7 @@ export default function MedicamentosProfesional() {
                 </p>
               </div>
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="descripcion">Descripción</Label>
               <Textarea
@@ -752,7 +752,7 @@ export default function MedicamentosProfesional() {
                 rows={2}
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="dosis">Dosis recomendada</Label>
               <Input
@@ -762,7 +762,7 @@ export default function MedicamentosProfesional() {
                 placeholder="Ej: 1 tableta cada 8 horas"
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="via">Vía de administración</Label>
               <Input
@@ -772,7 +772,7 @@ export default function MedicamentosProfesional() {
                 placeholder="Ej: Oral, Intravenosa, Tópica"
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="indicaciones">Indicaciones</Label>
               <Textarea
@@ -783,7 +783,7 @@ export default function MedicamentosProfesional() {
                 rows={3}
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="contraindicaciones">Contraindicaciones</Label>
               <Textarea
@@ -795,7 +795,7 @@ export default function MedicamentosProfesional() {
               />
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancelar

@@ -31,6 +31,7 @@ import Terminos from "@/pages/sistema/Terminos";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import ProfesionalCalendario from "./pages/profesional/Calendario";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,7 @@ const App = () => (
                 <Route path="medicamentos" element={<Medicamentos />} />
                 <Route path="asignar" element={<ProfesionalAsignar />} />
                 <Route path="perfil" element={<ProfesionalPerfil />} />
+                <Route path="calendario" element={<ProfesionalCalendario />} />
               </Route>
 
               <Route

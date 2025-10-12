@@ -27,6 +27,7 @@ const menuItems = [
   { to: ".", label: "Inicio", icon: Home, end: true },
   { to: "recetas", label: "Recetas", icon: FileText },
   { to: "medicamentos", label: "Medicamentos", icon: Pill },
+  { to: "calendario", label: "Calendario", icon: Clock },
   { to: "asignar", label: "Horarios", icon: Clock },
   { to: "perfil", label: "Perfil", icon: User },
 ];
