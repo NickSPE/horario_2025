@@ -22,9 +22,9 @@ export default function Index() {
       {/* Hero Section con imagen de fondo */}
       <section className="relative overflow-hidden min-h-[85vh] md:min-h-[90vh] flex items-center">
         {/* Imagen de fondo */}
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: 'url(/image/horario_medico_index.jpg)' }}
+          style={{ backgroundImage: 'url(/image/horario_medico_index.webp)' }}
         />
         {/* Overlay oscuro para mejorar legibilidad */}
         <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/60 to-black/70" />

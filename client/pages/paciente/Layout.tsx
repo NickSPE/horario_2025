@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,6 +9,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import {
@@ -77,9 +77,10 @@ export default function PacienteLayout() {
   return (
     <div className="min-h-screen flex">
       {/* Sidebar SOLO en Desktop - De borde a borde FIJO */}
-      <aside className="hidden md:flex md:w-72 lg:w-80 border-r bg-muted/30 dark:bg-muted/10 fixed h-screen overflow-y-auto">
-        <div className="flex flex-col w-full">
-          <div className="flex-1 px-6 py-8 space-y-6">
+      <aside className="hidden md:flex md:w-72 lg:w-80 border-r bg-muted/30 dark:bg-muted/10 fixed h-screen">
+        <div className="flex flex-col h-screen w-full relative">
+          {/* Contenido superior que hace scroll si es necesario */}
+          <div className="flex-1 px-6 py-8 space-y-6 overflow-y-auto pb-24">
             {/* User Info */}
             <div className="flex items-center gap-4 p-4 bg-card rounded-lg border shadow-sm">
               <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center flex-shrink-0 shadow-md">
@@ -111,52 +112,52 @@ export default function PacienteLayout() {
               })}
             </nav>
 
-          </div>
-          
-          {/* Bottom Actions */}
-          <div className="border-t p-6 space-y-3">
-            {/* Dark Mode Toggle */}
-            <Button
-              variant="ghost"
-              size="lg"
-              onClick={toggleDarkMode}
-              className="w-full justify-start gap-3 min-h-[52px] text-base font-medium"
-            >
-              {darkMode ? (
-                <Sun className="h-6 w-6" />
-              ) : (
-                <Moon className="h-6 w-6" />
-              )}
-              <span>{darkMode ? 'Modo Claro' : 'Modo Oscuro'}</span>
-            </Button>
-            
-            {/* Logout Button */}
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full justify-start gap-3 min-h-[52px] text-base font-medium hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
-                >
-                  <LogOut className="h-6 w-6" />
-                  Cerrar sesión
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    ¿Estás seguro que deseas cerrar tu sesión? Tendrás que iniciar sesión nuevamente para acceder a tu cuenta.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleSignOut} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    Sí, cerrar sesión
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            {/* Bottom Actions - pegado al fondo (sticky dentro del scroll container) */}
+            <div className="sticky bottom-0 border-t p-6 space-y-3 bg-muted/30 dark:bg-muted/10">
+              {/* Dark Mode Toggle */}
+              <Button
+                variant="ghost"
+                size="lg"
+                onClick={toggleDarkMode}
+                className="w-full justify-start gap-3 min-h-[52px] text-base font-medium"
+              >
+                {darkMode ? (
+                  <Sun className="h-6 w-6" />
+                ) : (
+                  <Moon className="h-6 w-6" />
+                )}
+                <span>{darkMode ? 'Modo Claro' : 'Modo Oscuro'}</span>
+              </Button>
+
+              {/* Logout Button */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full justify-start gap-3 min-h-[52px] text-base font-medium hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
+                  >
+                    <LogOut className="h-6 w-6" />
+                    Cerrar sesión
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      ¿Estás seguro que deseas cerrar tu sesión? Tendrás que iniciar sesión nuevamente para acceder a tu cuenta.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleSignOut} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Sí, cerrar sesión
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+
           </div>
         </div>
       </aside>
