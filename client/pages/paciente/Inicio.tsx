@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { getSupabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
-import { Bell, Clock, Pill } from "lucide-react";
+import { Bell, Clock, Pill, Plus } from "lucide-react";
 import type { RecordatorioCompleto } from "@shared/recordatorios";
 
 // Función para formatear tiempo restante
@@ -70,11 +70,11 @@ export default function PacienteInicio() {
   );
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 max-w-7xl mx-auto">
       {/* Encabezado común */}
       <header className="text-center md:text-left">
-        <h1 className="text-2xl md:text-3xl font-bold">Panel de Control</h1>
-        <p className="text-muted-foreground text-sm md:text-base">
+        <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Panel de Control</h1>
+        <p className="text-muted-foreground text-base md:text-lg mt-2">
           Accede a tus servicios de salud de forma rápida y sencilla.
         </p>
       </header>
@@ -82,55 +82,62 @@ export default function PacienteInicio() {
       {/* Vista móvil: tiles grandes y fáciles de tocar (como la imagen) */}
       <section className="grid grid-cols-2 gap-4 md:hidden">
         <Tile to="/dashboard/paciente/citas" title="Mis Citas" icon="📅" />
-        <Tile to="/dashboard/paciente/recetas" title="Recetas" icon="📋" />
         <Tile to="/dashboard/paciente/medicamentos" title="Medicamentos" icon="💊" />
         <Tile to="/dashboard/paciente/recordatorios" title="Recordatorios" icon="⏰" />
         <Tile to="/dashboard/paciente/mensajes" title="Mensajes" icon="✉️" />
-        <Tile to="/dashboard/paciente/perfil" title="Mi Perfil" icon="�" />
+        <Tile to="/dashboard/paciente/perfil" title="Mi Perfil" icon="👤" />
       </section>
 
       {/* Vista escritorio/tablet: tarjetas detalladas (formato original) */}
       <section className="hidden md:grid gap-8">
         {/* Recordatorios próximos - Sección de horarios */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-card rounded-xl border shadow-sm p-6">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" />
+              <h2 className="text-2xl font-bold flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Clock className="h-6 w-6 text-primary" />
+                </div>
                 Tu horario de hoy
               </h2>
-              <p className="text-sm text-muted-foreground">Próximas tomas programadas</p>
+              <p className="text-sm text-muted-foreground mt-1">Próximas tomas programadas</p>
             </div>
             <Link 
               to="/dashboard/paciente/recordatorios" 
-              className="text-sm text-primary hover:underline"
+              className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
             >
               Ver todos →
             </Link>
           </div>
 
           {loading ? (
-            <div className="grid gap-3">
-              <div className="rounded-md border p-4 animate-pulse bg-muted/20">
-                <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
-                <div className="h-3 bg-muted rounded w-1/2"></div>
-              </div>
+            <div className="grid gap-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="rounded-lg border p-5 animate-pulse bg-muted/20">
+                  <div className="h-5 bg-muted rounded w-1/3 mb-3"></div>
+                  <div className="h-4 bg-muted rounded w-2/3"></div>
+                </div>
+              ))}
             </div>
           ) : recordatorios.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="p-6 text-center text-muted-foreground">
-                <Pill className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p className="font-medium">No tienes recordatorios activos</p>
-                <p className="text-sm mt-1">
-                  Puedes crear uno en la sección de{" "}
-                  <Link to="/dashboard/paciente/recordatorios" className="text-primary hover:underline">
-                    Recordatorios
-                  </Link>
-                </p>
-              </CardContent>
-            </Card>
+            <div className="text-center py-12 px-6 bg-muted/30 rounded-lg border-2 border-dashed">
+              <div className="inline-flex p-4 rounded-full bg-primary/10 mb-4">
+                <Pill className="h-12 w-12 text-primary/50" />
+              </div>
+              <p className="font-semibold text-lg mb-2">No tienes recordatorios activos</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Crea recordatorios para no olvidar tus medicamentos
+              </p>
+              <Link 
+                to="/dashboard/paciente/recordatorios" 
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                Crear recordatorio
+              </Link>
+            </div>
           ) : (
-            <div className="grid gap-3">
+            <div className="grid gap-4">
               {recordatorios.map((recordatorio) => {
                 const debeTomar = recordatorio.segundos_restantes !== null && recordatorio.segundos_restantes <= 0;
                 const esProximo = recordatorio.segundos_restantes !== null && recordatorio.segundos_restantes <= 7200; // 2 horas
@@ -138,12 +145,12 @@ export default function PacienteInicio() {
                 return (
                   <div
                     key={recordatorio.id}
-                    className={`rounded-lg border p-4 flex items-center justify-between transition-colors ${
+                    className={`rounded-xl border-2 p-5 flex items-center justify-between transition-all hover:shadow-md ${
                       debeTomar 
-                        ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900' 
+                        ? 'bg-red-50 border-red-300 dark:bg-red-950/30 dark:border-red-800 shadow-lg' 
                         : esProximo
-                        ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900'
-                        : 'hover:bg-muted/50'
+                        ? 'bg-amber-50 border-amber-300 dark:bg-amber-950/30 dark:border-amber-800'
+                        : 'bg-card hover:border-primary/50'
                     }`}
                   >
                     <div className="flex-1">
@@ -194,23 +201,23 @@ export default function PacienteInicio() {
 
                     <Link
                       to="/dashboard/paciente/recordatorios"
-                      className={`ml-4 text-sm font-medium px-4 py-2 rounded-md transition-colors ${
+                      className={`ml-4 text-sm font-semibold px-5 py-2.5 rounded-lg transition-all shadow-sm ${
                         debeTomar
-                          ? 'bg-red-600 text-white hover:bg-red-700'
-                          : 'text-primary hover:bg-primary/10'
+                          ? 'bg-red-600 text-white hover:bg-red-700 hover:shadow-md'
+                          : 'bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-md'
                       }`}
                     >
-                      {debeTomar ? 'Tomar ahora' : 'Ver detalle'}
+                      {debeTomar ? '⏰ Tomar ahora' : 'Ver detalle →'}
                     </Link>
                   </div>
                 );
               })}
 
               {recordatoriosProximos.length > 0 && (
-                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
-                  <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
-                    <Bell className="h-4 w-4" />
-                    <strong>{recordatoriosProximos.length}</strong> recordatorio(s) próximo(s) en las siguientes 2 horas
+                <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-xl border-2 border-blue-300 dark:border-blue-800">
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                    <Bell className="h-5 w-5" />
+                    <strong className="text-base">{recordatoriosProximos.length}</strong> recordatorio(s) próximo(s) en las siguientes 2 horas
                   </p>
                 </div>
               )}

@@ -11,14 +11,12 @@ import PacienteInicio from "@/pages/paciente/Inicio";
 import PacienteLayout from "@/pages/paciente/Layout";
 import PacienteMedicamentos from "@/pages/paciente/Medicamentos";
 import PacientePerfil from "@/pages/paciente/Perfil";
-import PacienteRecetas from "@/pages/paciente/Recetas";
 import Recordatorios from "@/pages/paciente/Recordatorios";
 import ProfesionalAsignar from "@/pages/profesional/Asignar";
 import ProfesionalInicio from "@/pages/profesional/Inicio";
 import ProfesionalLayout from "@/pages/profesional/Layout";
 import Medicamentos from "@/pages/profesional/Medicamentos";
 import ProfesionalPerfil from "@/pages/profesional/Perfil";
-import ProfesionalRecetas from "@/pages/profesional/Recetas";
 import ComoFunciona from "@/pages/sistema/ComoFunciona";
 import Contacto from "@/pages/sistema/Contacto";
 import Funciones from "@/pages/sistema/Funciones";
@@ -62,7 +60,6 @@ const App = () => (
                 }
               >
                 <Route index element={<ProfesionalInicio />} />
-                <Route path="recetas" element={<ProfesionalRecetas />} />
                 <Route path="medicamentos" element={<Medicamentos />} />
                 <Route path="asignar" element={<ProfesionalAsignar />} />
                 <Route path="perfil" element={<ProfesionalPerfil />} />
@@ -78,7 +75,6 @@ const App = () => (
                 }
               >
                 <Route index element={<PacienteInicio />} />
-                <Route path="recetas" element={<PacienteRecetas />} />
                 <Route path="medicamentos" element={<PacienteMedicamentos />} />
                 <Route path="recordatorios" element={<Recordatorios />} />
                 <Route path="citas" element={<PacienteCitas />} />

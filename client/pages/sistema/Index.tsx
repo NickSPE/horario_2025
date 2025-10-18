@@ -19,52 +19,58 @@ export default function Index() {
 
   return (
     <div className="bg-background min-h-screen">
-      {/* Hero Section con gradiente mejorado */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100/20 via-transparent to-transparent" />
+      {/* Hero Section con imagen de fondo */}
+      <section className="relative overflow-hidden min-h-[85vh] md:min-h-[90vh] flex items-center">
+        {/* Imagen de fondo */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: 'url(/image/horario_medico_index.jpg)' }}
+        />
+        {/* Overlay oscuro para mejorar legibilidad */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/60 to-black/70" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
 
-        <div className="container relative py-16 md:py-24 lg:py-32">
+        <div className="container relative py-20 md:py-28 lg:py-36 z-10">
           <div className="max-w-3xl mx-auto text-center space-y-6 md:space-y-8">
-            <Badge variant="secondary" className="text-sm px-4 py-2">
+            <Badge variant="secondary" className="text-sm px-4 py-2 bg-white/90 text-primary border-0 shadow-lg">
               <Bell className="h-4 w-4 mr-2" />
               Recordatorios inteligentes para tu salud
             </Badge>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight tracking-tight text-white drop-shadow-2xl">
               Nunca olvides tomar tus medicamentos
             </h1>
 
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-white/95 max-w-2xl mx-auto drop-shadow-lg font-medium">
               Sistema profesional de recordatorios médicos. Para pacientes que cuidan su salud y profesionales que cuidan a sus pacientes.
             </p>
 
             {/* Botones principales - ocultos en móvil, mostrados en desktop */}
             <div className="hidden md:flex flex-wrap justify-center gap-4 pt-4">
-              <Button asChild size="lg" className="text-base h-14 px-8">
+              <Button asChild size="lg" className="text-base h-14 px-8 shadow-xl">
                 <Link to="/registro">
                   <Users className="mr-2 h-5 w-5" />
                   Comenzar gratis
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="text-base h-14 px-8">
+              <Button asChild variant="outline" size="lg" className="text-base h-14 px-8 bg-white/90 hover:bg-white border-2 shadow-xl">
                 <Link to="/login">Iniciar sesión</Link>
               </Button>
             </div>
 
             {/* Características destacadas */}
             <div className="flex flex-wrap justify-center gap-4 md:gap-6 pt-4 text-sm md:text-base">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <CheckCircle2 className="h-5 w-5 text-primary" />
-                <span>Alarmas precisas</span>
+              <div className="flex items-center gap-2 text-white drop-shadow-md">
+                <CheckCircle2 className="h-5 w-5 text-white" />
+                <span className="font-semibold">Alarmas precisas</span>
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <CheckCircle2 className="h-5 w-5 text-primary" />
-                <span>Seguimiento completo</span>
+              <div className="flex items-center gap-2 text-white drop-shadow-md">
+                <CheckCircle2 className="h-5 w-5 text-white" />
+                <span className="font-semibold">Seguimiento completo</span>
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <CheckCircle2 className="h-5 w-5 text-primary" />
-                <span>100% privado</span>
+              <div className="flex items-center gap-2 text-white drop-shadow-md">
+                <CheckCircle2 className="h-5 w-5 text-white" />
+                <span className="font-semibold">100% privado</span>
               </div>
             </div>
           </div>
