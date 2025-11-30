@@ -42,7 +42,7 @@ export default function Index() {
             </h1>
 
             <p className="text-lg md:text-xl text-white/95 max-w-2xl mx-auto drop-shadow-lg font-medium">
-              Sistema profesional de recordatorios médicos. Para pacientes que cuidan su salud y profesionales que cuidan a sus pacientes.
+              Sistema profesional de recordatorios médicos. Para pacientes que sufren diabetes e hipertensión y para profesionales que cuidan la salud de sus pacientes.
             </p>
 
             {/* Botones principales - ocultos en móvil, mostrados en desktop */}

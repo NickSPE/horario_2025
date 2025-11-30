@@ -1,13 +1,6 @@
-﻿import { useEffect, useState, useMemo } from "react";
-import { getSupabase } from "@/lib/supabase";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
-import type { CategoriaMedicamento, Medicamento } from "@shared/medicamentos";
-import { Search, ChevronDown, ChevronUp, Plus, Clock } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+﻿import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -16,8 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -25,7 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { getSupabase } from "@/lib/supabase";
+import type { CategoriaMedicamento, Medicamento } from "@shared/medicamentos";
 import { INTERVALOS_DISPONIBLES } from "@shared/recordatorios";
+import { ChevronDown, ChevronUp, Clock, Plus, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function MedicamentosPaciente() {
   const { toast } = useToast();
@@ -76,7 +76,7 @@ export default function MedicamentosPaciente() {
       const { data: cats, error: catsError } = await supabase
         .from("categorias_medicamentos")
         .select("*")
-        .order("nombre");
+        .filter("nombre", "in", '("Hipertensión","Diabetes")')
       if (catsError) throw catsError;
       setCategories(cats || []);
       const { data: medications, error: medsError } = await supabase

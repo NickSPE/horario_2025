@@ -24,7 +24,8 @@ export function ListMedicamentos({
         setCurrentPage(1); // reiniciar paginación al cambiar categoría
     };
 
-    const filteredMeds = meds.filter((m) => m.categoria_id === selectedCategory);
+
+    const filteredMeds = meds.filter(cat => cat.nombre === "Hipertensión" || cat.nombre === "Diabetes");
     const totalPages = Math.ceil(filteredMeds.length / pageSize);
     const startIndex = (currentPage - 1) * pageSize;
     const paginatedMeds = filteredMeds.slice(startIndex, startIndex + pageSize);
