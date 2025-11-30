@@ -89,7 +89,7 @@ export default function ProfesionalInicio() {
     <div className="grid gap-6">
       <header>
         <h1 className="text-2xl md:text-3xl font-bold">
-          Panel de Control del Doctor
+          Panel de Control del Licenciado/a
         </h1>
         <p className="text-muted-foreground">
           Bienvenida, {user?.user_metadata.nombre} {user?.user_metadata.apellido}. Aquí puede gestionar sus recetaas y ver el progreso de sus pacientes.

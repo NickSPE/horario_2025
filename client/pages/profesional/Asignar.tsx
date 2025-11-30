@@ -150,7 +150,7 @@ export default function AsignarRecordatorios() {
         *,
         categoria_nombre:categorias_medicamentos(nombre)
       `)
-      .filter('categoria_nombre.nombre', 'in', '("Hipertensión","Diabetes")')
+      .filter('categoria_nombre.nombre', 'in', '("Hipertensión","Diabetes","Tuberculosis")')
 
     if (error) {
       console.error('Error al cargar medicamentos:', error);

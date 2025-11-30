@@ -1,21 +1,20 @@
-import { useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  Mail, 
-  MessageSquare, 
-  Send, 
-  CheckCircle2, 
-  AlertCircle,
-  Phone,
-  MapPin,
-  Clock
-} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  CheckCircle2,
+  Clock,
+  Mail,
+  MapPin,
+  MessageSquare,
+  Phone,
+  Send
+} from "lucide-react";
+import { useState } from "react";
 
 export default function Contacto() {
   const { toast } = useToast();
@@ -292,7 +291,7 @@ export default function Contacto() {
                   href="tel:+1234567890"
                   className="text-2xl font-bold text-primary hover:underline block"
                 >
-                  +1 (234) 567-890
+                  +51 925 938 713
                 </a>
                 <p className="text-sm text-muted-foreground mt-2">
                   Lunes a Viernes, 9:00 AM - 6:00 PM

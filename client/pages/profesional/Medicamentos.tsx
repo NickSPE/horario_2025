@@ -113,7 +113,7 @@ export default function MedicamentosProfesional() {
       const { data: cats, error: catsError } = await supabase
         .from("categorias_medicamentos")
         .select("*")
-        .filter("nombre", "in", '("Hipertensión","Diabetes")');
+        .filter("nombre", "in", '("Hipertensión","Diabetes","Tuberculosis")');
       if (catsError) throw catsError;
       setCategories(cats || []);
 
