@@ -568,7 +568,7 @@ export default function Recordatorios() {
         *,
         categoria_nombre:categorias_medicamentos(nombre)
       `)
-      .filter("categoria_nombre.nombre", "in", '("Analgésicos","Antibióticos","Tuberculosis")')
+      .filter("categoria_nombre.nombre", "in", '("Hipertensión","Diabetes")')
 
     if (error) {
       console.error('Error al cargar medicamentos:', error);
